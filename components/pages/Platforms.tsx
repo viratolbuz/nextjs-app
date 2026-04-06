@@ -1,0 +1,264 @@
+"use client";
+
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { platforms as allPlatforms, projects } from '@/data/mockData';
+import { Search, Plus, Edit, Trash2, Globe, Eye, Plug, PlugZap, Calendar, User, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import PremiumKpiCard, { type KpiCardData } from '@/components/shared/PremiumKpiCard';
+import type { Platform } from '@/data/mockData';
+import AdvancedPagination from '@/components/shared/AdvancedPagination';
+import PermissionGate from '@/components/shared/PermissionGate';
+
+const STATUS_COLORS: Record<string, string> = {
+  Connected: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
+  Disconnected: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  Expiring: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
+};
+
+const Platforms = () => {
+  const [platList, setPlatList] = useState(allPlatforms);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [showDialog, setShowDialog] = useState(false);
+  const [editPlat, setEditPlat] = useState<Platform | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [viewProjects, setViewProjects] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+
+  const [formData, setFormData] = useState({ name: '', description: '', status: 'Connected' as Platform['status'], icon: '' });
+
+  const filtered = useMemo(() => {
+    let list = platList.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+    if (statusFilter !== 'all') list = list.filter(p => p.status === statusFilter);
+    return list;
+  }, [platList, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const openCreate = () => { setEditPlat(null); setFormData({ name: '', description: '', status: 'Connected', icon: '' }); setShowDialog(true); };
+  const openEdit = (p: Platform) => { setEditPlat(p); setFormData({ name: p.name, description: p.channels.join(', '), status: p.status, icon: p.icon }); setShowDialog(true); };
+
+  const savePlat = () => {
+    if (editPlat) {
+      setPlatList(prev => prev.map(p => p.id === editPlat.id ? { ...p, name: formData.name, channels: formData.description.split(',').map(c => c.trim()).filter(Boolean), status: formData.status, icon: formData.icon || formData.name[0]?.toUpperCase() || 'P' } : p));
+    } else {
+      const np: Platform = { id: String(Date.now()), name: formData.name, icon: formData.icon || formData.name[0]?.toUpperCase() || 'P', channels: formData.description.split(',').map(c => c.trim()).filter(Boolean), status: formData.status, projects: 0, spendMTD: '₹0', avgROAS: '0x', color: 'hsl(var(--primary))' };
+      setPlatList(prev => [...prev, np]);
+    }
+    setShowDialog(false);
+  };
+
+  const toggleConnection = (id: string) => {
+    setPlatList(prev => prev.map(p => p.id === id ? { ...p, status: p.status === 'Connected' ? 'Disconnected' : 'Connected' } : p));
+  };
+
+  const deletePlat = (id: string) => { setPlatList(prev => prev.filter(p => p.id !== id)); setDeleteConfirm(null); };
+
+  const connectedProjects = useMemo(() => {
+    if (!viewProjects) return [];
+    const plat = platList.find(p => p.id === viewProjects);
+    if (!plat) return [];
+    return projects.filter(p => p.platforms.includes(plat.name));
+  }, [viewProjects, platList]);
+
+  const stats = {
+    total: platList.length,
+    connected: platList.filter(p => p.status === 'Connected').length,
+    expiring: platList.filter(p => p.status === 'Expiring').length,
+    disconnected: platList.filter(p => p.status === 'Disconnected').length,
+  };
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-[28px] font-display font-bold">Platform Management</h1>
+          <p className="text-[15px] text-muted-foreground">Manage advertising platforms and connections</p>
+        </div>
+        <PermissionGate permission="Edit_platforms">
+          <Button size="sm" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Add Platform</Button>
+        </PermissionGate>
+      </div>
+
+      {/* KPI Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {([
+          { label: 'Total Platforms', value: stats.total.toString(), icon: Globe, accent: 'blue' as const, subtitle: 'All platforms', trend: 5 },
+          { label: 'Connected', value: stats.connected.toString(), icon: CheckCircle, accent: 'emerald' as const, subtitle: 'Active connections', trend: 10 },
+          { label: 'Expiring', value: stats.expiring.toString(), icon: AlertTriangle, accent: 'amber' as const, subtitle: 'Needs renewal' },
+          { label: 'Disconnected', value: stats.disconnected.toString(), icon: XCircle, accent: 'red' as const, subtitle: 'No connection', trend: -2 },
+        ] as KpiCardData[]).map((card, i) => (
+          <PremiumKpiCard key={card.label} card={card} index={i} />
+        ))}
+      </div>
+
+      {/* Filters */}
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Search platforms..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10" />
+            </div>
+            <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Platforms</SelectItem>
+                <SelectItem value="Connected">Connected</SelectItem>
+                <SelectItem value="Disconnected">Disconnected</SelectItem>
+                <SelectItem value="Expiring">Expiring</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Platform Grid Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {paginated.map(p => (
+          <Card key={p.id} className="shadow-md hover:shadow-lg transition-shadow border-border/50">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-lg font-bold shadow-sm">
+                    {p.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-base">{p.name}</h3>
+                    <p className="text-[13px] text-muted-foreground">{p.channels.join(', ')}</p>
+                  </div>
+                </div>
+                <Badge className={`text-[12px] border-0 font-bold ${STATUS_COLORS[p.status] || ''}`}>
+                  {p.status}
+                </Badge>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="text-center p-2 rounded-lg bg-muted/30">
+                  <p className="text-lg font-bold">{p.projects}</p>
+                  <p className="text-[12px] text-muted-foreground font-semibold">Projects</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-muted/30">
+                  <p className="text-lg font-bold">{p.spendMTD}</p>
+                  <p className="text-[12px] text-muted-foreground font-semibold">Spend MTD</p>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-muted/30">
+                  <p className="text-lg font-bold">{p.avgROAS}</p>
+                  <p className="text-[12px] text-muted-foreground font-semibold">Avg ROAS</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[12px] text-muted-foreground mb-3">
+                <span className="flex items-center gap-1"><User className="w-3 h-3" />Created by: Admin</span>
+                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Updated: Apr 2026</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-3 border-t border-border/50">
+                <Button variant="outline" size="sm" className="flex-1 text-[13px] gap-1" onClick={() => setViewProjects(p.id)}>
+                  <Eye className="w-3.5 h-3.5" /> View Projects
+                </Button>
+                <Button
+                  variant={p.status === 'Connected' ? 'outline' : 'default'}
+                  size="sm"
+                  className="flex-1 text-[13px] gap-1"
+                  onClick={() => toggleConnection(p.id)}
+                >
+                  {p.status === 'Connected' ? <PlugZap className="w-3.5 h-3.5" /> : <Plug className="w-3.5 h-3.5" />}
+                  {p.status === 'Connected' ? 'Disconnect' : 'Connect'}
+                </Button>
+                <PermissionGate permission="Edit_platforms">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                    <Edit className="w-3.5 h-3.5" />
+                  </Button>
+                </PermissionGate>
+                <PermissionGate permission="Delete_platforms">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirm(p.id)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </PermissionGate>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <AdvancedPagination page={page} totalPages={totalPages} totalItems={filtered.length} perPage={perPage} onPageChange={setPage} onPerPageChange={setPerPage} />
+
+      {/* View Connected Projects */}
+      <Dialog open={!!viewProjects} onOpenChange={() => setViewProjects(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle className="font-display font-bold">Connected Projects</DialogTitle></DialogHeader>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-themed">
+            {connectedProjects.length > 0 ? connectedProjects.map(p => (
+              <div key={p.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div>
+                  <p className="text-sm font-semibold">{p.name}</p>
+                  <p className="text-[13px] text-muted-foreground">{p.client}</p>
+                </div>
+                <Badge variant="outline" className="text-[12px]">{p.status}</Badge>
+              </div>
+            )) : <p className="text-sm text-muted-foreground text-center py-4">No projects connected</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-display font-bold">{editPlat ? 'Edit Platform' : 'Add Platform'}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-[14px] font-bold mb-1 block">Platform Name <span className="text-destructive">*</span></label>
+              <Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-[14px] font-bold mb-1 block">Description (channels)</label>
+              <Textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="Search, Display, Shopping..." />
+            </div>
+            <div>
+              <label className="text-[14px] font-bold mb-1 block">Status</label>
+              <Select value={formData.status} onValueChange={v => setFormData(f => ({ ...f, status: v as any }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Connected">Connected</SelectItem>
+                  <SelectItem value="Disconnected">Disconnected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[14px] font-bold mb-1 block">Icon (letter or emoji)</label>
+              <Input value={formData.icon} onChange={e => setFormData(f => ({ ...f, icon: e.target.value }))} placeholder="G" maxLength={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            <Button onClick={savePlat} disabled={!formData.name.trim()}>{editPlat ? 'Update' : 'Add Platform'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle className="font-display font-bold">Confirm Delete</DialogTitle></DialogHeader>
+          <p className="text-[15px] text-muted-foreground">Are you sure you want to delete this platform?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deletePlat(deleteConfirm!)}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Platforms;
