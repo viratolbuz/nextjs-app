@@ -12,9 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { projects as allProjects, users, platforms } from '@/data/mockData';
-import { Search, Plus, Edit, Trash2, Eye, Download, FolderKanban, AlertTriangle, CheckCircle, PauseCircle, Minus, ChevronDown } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, Eye, FolderKanban, AlertTriangle, CheckCircle, PauseCircle, Minus } from 'lucide-react';
+import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
 import type { Project } from '@/data/mockData';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
@@ -36,8 +36,9 @@ const Projects = () => {
   const router = useRouter();
   const [projectList, setProjectList] = useState(allProjects);
   const [search, setSearch] = useState('');
-  const [filterBy, setFilterBy] = useState('all');
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({
+    status: [], type: [], manager: [], country: [], client: [],
+  });
   const [sortKey, setSortKey] = useState<ProjectListSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -53,16 +54,25 @@ const Projects = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([{ userId: '', platformId: '' }]);
   const [platAccounts, setPlatAccounts] = useState<PlatformAccount[]>([{ platformId: '', accountIds: [{ id: '', status: 'Active' }] }]);
 
-  const filterOptions: Record<string, string[]> = {
-    status: ['Active', 'On Hold', 'Completed', 'Budget Warning'],
-    type: [...new Set(projectList.map(p => p.type))],
-    manager: [...new Set(projectList.map(p => p.manager))],
-    country: [...new Set(projectList.map(p => p.country))],
-    client: [...new Set(projectList.map(p => p.client))],
+  const filterGroups = useMemo(() => [
+    { id: 'status', label: 'Status', options: ['Active', 'On Hold', 'Completed', 'Budget Warning'] as string[] },
+    { id: 'type', label: 'Type', options: [...new Set(projectList.map(p => p.type))].sort() },
+    { id: 'manager', label: 'Manager', options: [...new Set(projectList.map(p => p.manager))].sort() },
+    { id: 'country', label: 'Country', options: [...new Set(projectList.map(p => p.country))].sort() },
+    { id: 'client', label: 'Client', options: [...new Set(projectList.map(p => p.client))].sort() },
+  ], [projectList]);
+
+  const toggleGroupFilter = (groupId: string, value: string) => {
+    setFilterSelections(prev => {
+      const cur = prev[groupId] ?? [];
+      const next = cur.includes(value) ? cur.filter(f => f !== value) : [...cur, value];
+      return { ...prev, [groupId]: next };
+    });
+    setPage(1);
   };
 
-  const toggleFilter = (val: string) => {
-    setSelectedFilters(prev => prev.includes(val) ? prev.filter(f => f !== val) : [...prev, val]);
+  const clearAllFilters = () => {
+    setFilterSelections({ status: [], type: [], manager: [], country: [], client: [] });
     setPage(1);
   };
 
@@ -80,13 +90,16 @@ const Projects = () => {
     let list = projectList.filter(p =>
       p.name.toLowerCase().includes(search.toLowerCase()) || p.client.toLowerCase().includes(search.toLowerCase())
     );
-    if (filterBy !== 'all' && selectedFilters.length > 0) {
-      if (filterBy === 'status') list = list.filter(p => selectedFilters.includes(p.status));
-      if (filterBy === 'type') list = list.filter(p => selectedFilters.includes(p.type));
-      if (filterBy === 'manager') list = list.filter(p => selectedFilters.includes(p.manager));
-      if (filterBy === 'country') list = list.filter(p => selectedFilters.includes(p.country));
-      if (filterBy === 'client') list = list.filter(p => selectedFilters.includes(p.client));
-    }
+    const st = filterSelections.status ?? [];
+    const ty = filterSelections.type ?? [];
+    const mg = filterSelections.manager ?? [];
+    const co = filterSelections.country ?? [];
+    const cl = filterSelections.client ?? [];
+    if (st.length) list = list.filter(p => st.includes(p.status));
+    if (ty.length) list = list.filter(p => ty.includes(p.type));
+    if (mg.length) list = list.filter(p => mg.includes(p.manager));
+    if (co.length) list = list.filter(p => co.includes(p.country));
+    if (cl.length) list = list.filter(p => cl.includes(p.client));
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -108,7 +121,7 @@ const Projects = () => {
           return 0;
       }
     });
-  }, [projectList, search, filterBy, selectedFilters, sortKey, sortDir]);
+  }, [projectList, search, filterSelections, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -174,10 +187,10 @@ const Projects = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-display font-bold">Projects</h1>
-          <p className="text-[15px] text-muted-foreground"><span className="font-semibold text-foreground">{stats.total}</span> campaigns across all platforms</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">Projects</h1>
+          <p className="text-sm sm:text-[15px] text-muted-foreground"><span className="font-semibold text-foreground">{stats.total}</span> campaigns across all platforms</p>
         </div>
         <div className="flex gap-2">
           {/* <PermissionGate permission="Export_performance_entries">
@@ -203,54 +216,33 @@ const Projects = () => {
 
       {/* Filters */}
       <Card className="shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search projects, clients..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10" />
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input placeholder="Search projects, clients..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10 min-h-9" />
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-[13px] font-semibold text-muted-foreground">Filter by:</span>
-              <Select value={filterBy} onValueChange={v => { setFilterBy(v); setSelectedFilters([]); setPage(1); }}>
-                <SelectTrigger className="w-[130px] h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="type">Type</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="country">Country</SelectItem>
-                  <SelectItem value="client">Client</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {filterBy !== 'all' && filterOptions[filterBy] && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="min-w-[160px] justify-between text-[13px] h-9">
-                    <span>{selectedFilters.length === 0 ? 'Select filters...' : `${selectedFilters.length} selected`}</span>
-                    <ChevronDown className="w-3 h-3 ml-1 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[220px] p-0" align="start">
-                  <div className="max-h-[280px] overflow-y-auto p-2 space-y-0.5">
-                    {filterOptions[filterBy].map(opt => (
-                      <label key={opt} className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded">
-                        <Checkbox checked={selectedFilters.includes(opt)} onCheckedChange={() => toggleFilter(opt)} />
-                        <span className="text-[13px] truncate">{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            )}
+            <GroupedFiltersPopover
+              groups={filterGroups}
+              selections={filterSelections}
+              onToggle={toggleGroupFilter}
+              onClearAll={clearAllFilters}
+            />
           </div>
-          {selectedFilters.length > 0 && (
+          {Object.values(filterSelections).some(arr => arr.length > 0) && (
             <div className="flex flex-wrap gap-1.5">
-              {selectedFilters.map(f => (
-                <Badge key={f} variant="secondary" className="text-[13px] gap-1 cursor-pointer" onClick={() => toggleFilter(f)}>
-                  {f} ✕
-                </Badge>
-              ))}
+              {filterGroups.flatMap(g =>
+                (filterSelections[g.id] ?? []).map(val => (
+                  <Badge
+                    key={`${g.id}-${val}`}
+                    variant="secondary"
+                    className="text-xs sm:text-[13px] gap-1 cursor-pointer font-medium touch-manipulation"
+                    onClick={() => toggleGroupFilter(g.id, val)}
+                  >
+                    {g.label}: {val} ✕
+                  </Badge>
+                )),
+              )}
             </div>
           )}
         </CardContent>
@@ -335,10 +327,10 @@ const Projects = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-themed">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl sm:w-full max-h-[85vh] overflow-y-auto scrollbar-themed">
           <DialogHeader><DialogTitle className="font-display font-bold">{editProject ? 'Edit Project' : 'Create New Project'}</DialogTitle></DialogHeader>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[14px] font-bold mb-1 block">Project Name <span className="text-destructive">*</span></label>
                 <Input value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} />
@@ -359,7 +351,7 @@ const Projects = () => {
               <label className="text-[14px] font-bold mb-1 block">Description</label>
               <Textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="Project description..." rows={2} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[14px] font-bold mb-1 block">Select Client <span className="text-destructive">*</span></label>
                 <Select value={formData.client} onValueChange={v => setFormData(f => ({ ...f, client: v }))}>
@@ -397,8 +389,8 @@ const Projects = () => {
               </div>
               <div className="space-y-3">
                 {assignments.map((a, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-background">
-                    <div className="flex-1">
+                  <div key={i} className="flex flex-col sm:flex-row sm:items-end gap-3 p-3 rounded-lg border bg-background">
+                    <div className="flex-1 min-w-0">
                       <label className="text-[13px] font-semibold mb-1 block">Assigned User <span className="text-destructive">*</span></label>
                       <Select value={a.userId} onValueChange={v => setAssignments(prev => prev.map((x, j) => j === i ? { ...x, userId: v } : x))}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Select User" /></SelectTrigger>
@@ -407,7 +399,7 @@ const Projects = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <label className="text-[13px] font-semibold mb-1 block">Platform <span className="text-destructive">*</span></label>
                       <Select value={a.platformId} onValueChange={v => setAssignments(prev => prev.map((x, j) => j === i ? { ...x, platformId: v } : x))}>
                         <SelectTrigger className="h-9"><SelectValue placeholder="Select Platform" /></SelectTrigger>
@@ -416,7 +408,7 @@ const Projects = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button variant="outline" size="icon" className="h-9 w-9 mt-5 text-destructive border-destructive/30" onClick={() => setAssignments(prev => prev.filter((_, j) => j !== i))}>
+                    <Button variant="outline" size="icon" className="h-9 w-9 sm:mt-5 shrink-0 self-end sm:self-auto text-destructive border-destructive/30" onClick={() => setAssignments(prev => prev.filter((_, j) => j !== i))}>
                       <Minus className="w-4 h-4" />
                     </Button>
                   </div>
@@ -441,7 +433,7 @@ const Projects = () => {
                     <div>
                       <label className="text-[13px] font-semibold mb-1 block">Platform <span className="text-destructive">*</span></label>
                       <Select value={pa.platformId} onValueChange={v => setPlatAccounts(prev => prev.map((x, j) => j === i ? { ...x, platformId: v } : x))}>
-                        <SelectTrigger className="h-9 w-[200px]"><SelectValue placeholder="Select Platform" /></SelectTrigger>
+                        <SelectTrigger className="h-9 w-full max-w-full sm:max-w-[200px]"><SelectValue placeholder="Select Platform" /></SelectTrigger>
                         <SelectContent>
                           {platforms.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                         </SelectContent>
@@ -479,7 +471,7 @@ const Projects = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[14px] font-bold mb-1 block">Select Status</label>
                 <Select value={formData.status} onValueChange={v => setFormData(f => ({ ...f, status: v as any }))}>

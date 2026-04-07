@@ -13,6 +13,7 @@ import { Search, Plus, Upload, Download, Edit, Trash2, Eye, FileDown } from 'luc
 import type { PerformanceEntry } from '@/data/mockData';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
+import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
 
 // Generate more mock data
 const generateEntries = (): PerformanceEntry[] => {
@@ -42,10 +43,11 @@ const generateEntries = (): PerformanceEntry[] => {
 const PerformanceEntryPage = () => {
   const [entries, setEntries] = useState(generateEntries);
   const [search, setSearch] = useState('');
-  const [filterProject, setFilterProject] = useState('all');
-  const [filterPlatform, setFilterPlatform] = useState('all');
-  const [filterMonth, setFilterMonth] = useState('all');
-  const [filterYear, setFilterYear] = useState('all');
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({
+    project: [],
+    platform: [],
+    period: [],
+  });
   const [showDialog, setShowDialog] = useState(false);
   const [editEntry, setEditEntry] = useState<PerformanceEntry | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -54,15 +56,44 @@ const PerformanceEntryPage = () => {
 
   const [formData, setFormData] = useState({ date: '', project: '', platform: '', spend: 0, leads: 0, cpl: 0, revenue: 0, roas: 0 });
 
+  const filterGroups = useMemo(() => {
+    const projectOpts = [...new Set(entries.map(e => e.project))].sort();
+    const platformOpts = [...new Set(entries.map(e => e.platform))].sort();
+    const periodOpts = [...new Set(entries.map(e => e.date))].sort();
+    return [
+      { id: 'project', label: 'Project', options: projectOpts },
+      { id: 'platform', label: 'Platform', options: platformOpts },
+      { id: 'period', label: 'Period / date', options: periodOpts },
+    ];
+  }, [entries]);
+
+  const toggleGroupFilter = (groupId: string, value: string) => {
+    setFilterSelections(prev => {
+      const cur = prev[groupId] ?? [];
+      const next = cur.includes(value) ? cur.filter(x => x !== value) : [...cur, value];
+      return { ...prev, [groupId]: next };
+    });
+    setPage(1);
+  };
+
+  const clearAllFilters = () => {
+    setFilterSelections({ project: [], platform: [], period: [] });
+    setPage(1);
+  };
+
   const filtered = useMemo(() => {
     return entries.filter(e => {
       const matchSearch = e.project.toLowerCase().includes(search.toLowerCase()) || e.platform.toLowerCase().includes(search.toLowerCase());
       if (!matchSearch) return false;
-      if (filterProject !== 'all' && e.project !== filterProject) return false;
-      if (filterPlatform !== 'all' && e.platform !== filterPlatform) return false;
+      const pr = filterSelections.project ?? [];
+      const pl = filterSelections.platform ?? [];
+      const pe = filterSelections.period ?? [];
+      if (pr.length > 0 && !pr.includes(e.project)) return false;
+      if (pl.length > 0 && !pl.includes(e.platform)) return false;
+      if (pe.length > 0 && !pe.includes(e.date)) return false;
       return true;
     });
-  }, [entries, search, filterProject, filterPlatform]);
+  }, [entries, search, filterSelections]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -102,12 +133,12 @@ const PerformanceEntryPage = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-display font-bold">Performance Entries</h1>
-          <p className="text-[15px] text-muted-foreground">Log daily Spend, Leads, CPL, Revenue and ROAS per project</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">Performance Entries</h1>
+          <p className="text-sm sm:text-[15px] text-muted-foreground">Log daily Spend, Leads, CPL, Revenue and ROAS per project</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* <PermissionGate permission="Export_performance_entries">
             <Button variant="outline" size="sm" onClick={exportCSV} className="bg-success/10 text-success border-success/30 hover:bg-success/20"><Download className="w-4 h-4 mr-1" />Export</Button>
           </PermissionGate> */}
@@ -122,7 +153,7 @@ const PerformanceEntryPage = () => {
       </div>
 
       {/* Totals */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         {[
           { l: 'Total Spend', v: `₹${(totals.spend / 100000).toFixed(1)}L` },
           { l: 'Total Leads', v: totals.leads.toLocaleString() },
@@ -136,33 +167,41 @@ const PerformanceEntryPage = () => {
 
       {/* Search */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search entries..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10" />
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input placeholder="Search entries..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10 min-h-9" />
             </div>
-            <Select value={filterProject} onValueChange={v => { setFilterProject(v); setPage(1); }}>
-              <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Projects" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
-                {projects.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterPlatform} onValueChange={v => { setFilterPlatform(v); setPage(1); }}>
-              <SelectTrigger className="w-[150px]"><SelectValue placeholder="All Platforms" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Platforms</SelectItem>
-                {platforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <GroupedFiltersPopover
+              groups={filterGroups}
+              selections={filterSelections}
+              onToggle={toggleGroupFilter}
+              onClearAll={clearAllFilters}
+            />
           </div>
+          {Object.values(filterSelections).some(arr => arr.length > 0) && (
+            <div className="flex flex-wrap gap-1.5">
+              {filterGroups.flatMap(g =>
+                (filterSelections[g.id] ?? []).map(val => (
+                  <Badge
+                    key={`${g.id}-${val}`}
+                    variant="secondary"
+                    className="text-xs sm:text-[13px] gap-1 cursor-pointer font-medium touch-manipulation max-w-full truncate"
+                    onClick={() => toggleGroupFilter(g.id, val)}
+                  >
+                    {g.label}: {val} ✕
+                  </Badge>
+                )),
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Table */}
-      <Card>
-        <CardContent className="p-0">
+      <Card className="overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -221,7 +260,7 @@ const PerformanceEntryPage = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg sm:w-full">
           <DialogHeader><DialogTitle>{editEntry ? 'Edit Entry' : 'Add Performance Entry'}</DialogTitle></DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto">
             <div>
@@ -238,13 +277,13 @@ const PerformanceEntryPage = () => {
                 <SelectContent>{platforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="text-[14px] font-semibold mb-1 block">Spend (₹) *</label><Input type="number" value={formData.spend || ''} onChange={e => setFormData(f => ({ ...f, spend: +e.target.value }))} /></div>
               <div><label className="text-[14px] font-semibold mb-1 block">Leads</label><Input type="number" value={formData.leads || ''} onChange={e => setFormData(f => ({ ...f, leads: +e.target.value }))} /></div>
               <div><label className="text-[14px] font-semibold mb-1 block">Revenue (₹)</label><Input type="number" value={formData.revenue || ''} onChange={e => setFormData(f => ({ ...f, revenue: +e.target.value }))} /></div>
               <div><label className="text-[14px] font-semibold mb-1 block">ROAS</label><Input type="number" step="0.1" value={formData.roas || ''} onChange={e => setFormData(f => ({ ...f, roas: +e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div><label className="text-[14px] font-semibold mb-1 block">Year</label><Input value="2026" readOnly /></div>
               <div>
                 <label className="text-[14px] font-semibold mb-1 block">Month</label>

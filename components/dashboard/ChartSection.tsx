@@ -57,8 +57,8 @@ const ChartSection = () => {
           </div>
         </div>
 
-        <div className="overflow-hidden">
-          <ResponsiveContainer width="100%" height={400}>
+        <div className="overflow-hidden w-full min-h-[240px] h-[280px] sm:h-[340px] md:h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartSeries}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis

@@ -144,12 +144,14 @@ export function buildDashboardPerformanceSeries(
     return { data: sliced.length ? sliced : monthlyTrend.slice(-3), xKey: "month", mode: "monthly" };
   }
 
+  const useHourly = type === "today" || type === "yesterday";
+
+  // Last month should render as a 30-day daily series (not a single summary point).
   const useDaily =
     type === "7days" ||
     type === "14days" ||
     type === "lastweek" ||
-    type === "today" ||
-    type === "yesterday" ||
+    type === "1month" ||
     (type === "custom" && daysSpan <= 14);
 
   const filteredEntries = entries.filter((entry) => {
@@ -158,8 +160,52 @@ export function buildDashboardPerformanceSeries(
     return !isBefore(ed, startOfDay(from)) && !isAfter(ed, endOfDay(to));
   });
 
+  if (useHourly) {
+    const baseDay = startOfDay(from);
+    const dayKey = format(baseDay, "yyyy-MM-dd");
+    const dayEntries = filteredEntries.filter((e) => {
+      const ed = parsePerformanceEntryDate(e.date, anchor);
+      return ed && format(ed, "yyyy-MM-dd") === dayKey;
+    });
+
+    const spendLTotal = dayEntries.reduce((s, e) => s + e.spend, 0) / 100000;
+    const revenueLTotal = dayEntries.reduce((s, e) => s + e.revenue, 0) / 100000;
+    const leadsTotal = dayEntries.reduce((s, e) => s + e.leads, 0);
+    const roasAvg = dayEntries.length ? dayEntries.reduce((s, e) => s + e.roas, 0) / dayEntries.length : 3.9;
+    const cpaAvg = dayEntries.length ? dayEntries.reduce((s, e) => s + e.cpl, 0) / dayEntries.length : 380;
+
+    const lastBar = monthlyTrend[monthlyTrend.length - 1] || {
+      spend: 1,
+      revenue: 4,
+      leads: 100,
+      roas: 3.9,
+      cpa: 380,
+    };
+
+    const spendL = spendLTotal > 0 ? spendLTotal : lastBar.spend / 30;
+    const revenueL = revenueLTotal > 0 ? revenueLTotal : lastBar.revenue / 30;
+    const leads = leadsTotal > 0 ? leadsTotal : Math.max(1, Math.round(lastBar.leads / 30));
+
+    const data = Array.from({ length: 24 }).map((_v, h) => {
+      // Deterministic distribution so the chart stays stable between renders.
+      const w = 0.65 + (((h * 17) % 35) / 100);
+      return {
+        hour: `${String(h).padStart(2, "0")}:00`,
+        spend: Math.round((spendL / 24) * w * 100) / 100,
+        revenue: Math.round((revenueL / 24) * w * 100) / 100,
+        leads: Math.max(0, Math.round((leads / 24) * w)),
+        roas: Math.round(roasAvg * 100) / 100,
+        cpa: Math.round(cpaAvg),
+      };
+    });
+
+    return { data, xKey: "hour", mode: "daily" };
+  }
+
   if (useDaily) {
-    const days = eachDayOfInterval({ start: startOfDay(from), end: startOfDay(to) });
+    const dailyStart = type === "1month" ? startOfDay(subDays(to, 29)) : startOfDay(from);
+    const dailyEnd = startOfDay(to);
+    const days = eachDayOfInterval({ start: dailyStart, end: dailyEnd });
     const lastBar = monthlyTrend[monthlyTrend.length - 1] || {
       spend: 1,
       revenue: 4,
@@ -289,6 +335,12 @@ export const DateRangePicker: React.FC<{ className?: string; compact?: boolean }
   const ctx = useContext(DateRangeContext)!;
   const { state, dispatch } = ctx;
   const [open, setOpen] = React.useState(false);
+  const [pendingCustom, setPendingCustom] = React.useState<DateRange>({ from: state.range.from, to: state.range.to });
+
+  React.useEffect(() => {
+    if (!open) return;
+    setPendingCustom({ from: state.range.from, to: state.range.to });
+  }, [open, state.range.from, state.range.to]);
 
   const triggerLabel =
     state.type === "custom" && state.range.from && state.range.to
@@ -333,13 +385,50 @@ export const DateRangePicker: React.FC<{ className?: string; compact?: boolean }
         <div className="p-3">
           <Calendar
             mode="range"
-            selected={{ from: state.range.from, to: state.range.to }}
+            selected={{ from: pendingCustom.from, to: pendingCustom.to }}
             onSelect={(rge) => {
-              dispatch({ type: "SET_CUSTOM", payload: rge as DateRange });
-              setOpen(false);
+              const next = (rge as DateRange) || { from: undefined, to: undefined };
+              setPendingCustom(next);
             }}
             className="rounded-md border"
           />
+          <div className="flex items-center justify-between gap-2 mt-3">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={() => {
+                setPendingCustom({ from: undefined, to: undefined });
+              }}
+            >
+              Clear
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 px-3 text-xs"
+                disabled={!pendingCustom.from || !pendingCustom.to}
+                onClick={() => {
+                  if (!pendingCustom.from || !pendingCustom.to) return;
+                  dispatch({ type: "SET_CUSTOM", payload: pendingCustom });
+                  setOpen(false);
+                }}
+              >
+                Apply
+              </Button>
+            </div>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

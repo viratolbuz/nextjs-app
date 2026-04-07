@@ -28,14 +28,14 @@ const ReportFilters = ({ items, selectedItems, onToggleItem, onSelectAll, select
     <div className="flex flex-wrap items-center gap-4">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="min-w-[180px] justify-between text-sm font-normal">
+          <Button variant="outline" className="w-full sm:w-auto sm:min-w-[180px] justify-between text-sm font-normal min-h-9 touch-manipulation">
             <span>
               {selectLabel}: {allSelected ? "All" : `${selectedCount} selected`}
             </span>
             <ChevronDown className="w-3.5 h-3.5 ml-2 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[240px] p-0" align="start">
+        <PopoverContent className="w-[min(100vw-2rem,240px)] p-0" align="start">
           <div className="p-2 border-b border-border">
             <label className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded">
               <Checkbox checked={allSelected} onCheckedChange={onSelectAll} />

@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { roles as allRoles, sortRolesByDisplayOrder } from "@/data/mockData";
 import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import type { Role } from "@/data/mockData";
 import PermissionGate from "@/components/shared/PermissionGate";
+import { GroupedFiltersPopover, type FilterSelections } from "@/components/shared/GroupedFiltersPopover";
 
 const ALL_PERMISSIONS = [
   "View_dashboard",
@@ -96,7 +96,7 @@ const Roles = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formPerms, setFormPerms] = useState<string[]>([]);
-  const [selectedRoleId, setSelectedRoleId] = useState<string>("all");
+  const [roleFilterSelections, setRoleFilterSelections] = useState<FilterSelections>({ role: [] });
 
   const openCreate = () => {
     setEditRole(null);
@@ -158,10 +158,32 @@ const Roles = () => {
     {} as Record<string, string[]>,
   );
 
+  const roleFilterGroups = useMemo(
+    () => [
+      {
+        id: "role",
+        label: "Role",
+        options: sortRolesByDisplayOrder(roleList).map((r) => ({ value: r.id, label: r.name })),
+      },
+    ],
+    [roleList],
+  );
+
+  const toggleRoleFilter = (groupId: string, value: string) => {
+    setRoleFilterSelections((prev) => {
+      const cur = prev[groupId] ?? [];
+      const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+      return { ...prev, [groupId]: next };
+    });
+  };
+
+  const clearRoleFilters = () => setRoleFilterSelections({ role: [] });
+
   const displayedRoles = useMemo(() => {
-    const base = selectedRoleId === "all" ? roleList : roleList.filter((r) => r.id === selectedRoleId);
+    const ids = roleFilterSelections.role ?? [];
+    const base = ids.length === 0 ? roleList : roleList.filter((r) => ids.includes(r.id));
     return sortRolesByDisplayOrder(base);
-  }, [roleList, selectedRoleId]);
+  }, [roleList, roleFilterSelections]);
 
   const getModuleLevel = (role: RoleWithPerms, module: string, perms: string[]) => {
     const granted = perms.filter(
@@ -174,25 +196,18 @@ const Roles = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Roles & Permissions</h1>
-          <p className="text-sm text-muted-foreground">Define access levels for each role</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Roles & Permissions</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Define access levels for each role</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Select value={selectedRoleId} onValueChange={(v) => setSelectedRoleId(v)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Filter by role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              {sortRolesByDisplayOrder(roleList).map((r) => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
+          <GroupedFiltersPopover
+            groups={roleFilterGroups}
+            selections={roleFilterSelections}
+            onToggle={toggleRoleFilter}
+            onClearAll={clearRoleFilters}
+          />
           <PermissionGate permission="Create_roles">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
@@ -307,7 +322,7 @@ const Roles = () => {
                     >
                       {module}
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                       {perms.map((perm) => (
                         <div
                           key={perm}

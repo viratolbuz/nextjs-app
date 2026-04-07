@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GroupedFiltersPopover, type FilterSelections } from "@/components/shared/GroupedFiltersPopover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { users as mockUsersArray, roles, sortRolesByDisplayOrder } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Plus, Download, Edit, Trash2, Eye, Users as UsersIcon } from "lucide-react";
@@ -72,8 +72,7 @@ const Users = () => {
   const removeUserByEmail = useUserStore((s) => s.removeUserByEmail);
   const userList = getAllUsers();
   const [search, setSearch] = useState("");
-  const [filterBy, setFilterBy] = useState("all");
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({ status: [], role: [] });
   const [sortKey, setSortKey] = useState<UserSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -97,9 +96,26 @@ const Users = () => {
     role: "User",
   });
 
-  const filterOptions: Record<string, string[]> = {
-    role: [...new Set(userList.map((u) => u.role))],
-    status: ["Active", "Inactive", "Pending"],
+  const filterGroups = useMemo(
+    () => [
+      { id: "status", label: "Status", options: ["Active", "Inactive", "Pending"] as string[] },
+      { id: "role", label: "Role", options: [...new Set(userList.map((u) => u.role))].sort() },
+    ],
+    [userList],
+  );
+
+  const toggleGroupFilter = (groupId: string, value: string) => {
+    setFilterSelections((prev) => {
+      const cur = prev[groupId] ?? [];
+      const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+      return { ...prev, [groupId]: next };
+    });
+    setPage(1);
+  };
+
+  const clearAllFilters = () => {
+    setFilterSelections({ status: [], role: [] });
+    setPage(1);
   };
 
   const toggleUserSort = (k: UserSortKey) => {
@@ -112,20 +128,15 @@ const Users = () => {
 
   const userSortIndicator = (k: UserSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
 
-  const toggleFilter = (val: string) => {
-    setSelectedFilters((prev) => (prev.includes(val) ? prev.filter((f) => f !== val) : [...prev, val]));
-    setPage(1);
-  };
-
   const filtered = useMemo(() => {
     let list = userList.filter(
       (u) =>
         u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()),
     );
-    if (filterBy !== "all" && selectedFilters.length > 0) {
-      if (filterBy === "role") list = list.filter((u) => selectedFilters.includes(u.role));
-      if (filterBy === "status") list = list.filter((u) => selectedFilters.includes(u.status));
-    }
+    const st = filterSelections.status ?? [];
+    const rl = filterSelections.role ?? [];
+    if (st.length > 0) list = list.filter((u) => st.includes(u.status));
+    if (rl.length > 0) list = list.filter((u) => rl.includes(u.role));
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -145,7 +156,7 @@ const Users = () => {
           return 0;
       }
     });
-  }, [userList, search, filterBy, selectedFilters, sortKey, sortDir]);
+  }, [userList, search, filterSelections, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -242,10 +253,10 @@ const Users = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-display font-bold">User Management</h1>
-          <p className="text-[15px] text-muted-foreground">Manage team members, roles and access</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">User Management</h1>
+          <p className="text-sm sm:text-[15px] text-muted-foreground">Manage team members, roles and access</p>
         </div>
         <div className="flex gap-2">
           <PermissionGate permission="Export_performance_entries">
@@ -298,10 +309,10 @@ const Users = () => {
 
       {/* Filters */}
       <Card className="shadow-sm">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <CardContent className="p-3 sm:p-4 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 placeholder="Search users..."
                 value={search}
@@ -309,46 +320,38 @@ const Users = () => {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="pl-10"
+                className="pl-10 min-h-9"
               />
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-[13px] font-semibold text-muted-foreground">Filter by:</span>
-              <Select
-                value={filterBy}
-                onValueChange={(v) => {
-                  setFilterBy(v);
-                  setSelectedFilters([]);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[130px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="role">Role</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <GroupedFiltersPopover
+              groups={filterGroups}
+              selections={filterSelections}
+              onToggle={toggleGroupFilter}
+              onClearAll={clearAllFilters}
+            />
           </div>
-          {filterBy !== "all" && filterOptions[filterBy] && (
-            <div className="flex flex-wrap gap-2">
-              {filterOptions[filterBy].map((opt) => (
-                <label key={opt} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <Checkbox checked={selectedFilters.includes(opt)} onCheckedChange={() => toggleFilter(opt)} />
-                  <span className="text-[13px] font-medium">{opt}</span>
-                </label>
-              ))}
+          {(filterSelections.status?.length || filterSelections.role?.length) ? (
+            <div className="flex flex-wrap gap-1.5">
+              {filterGroups.flatMap((g) =>
+                (filterSelections[g.id] ?? []).map((val) => (
+                  <Badge
+                    key={`${g.id}-${val}`}
+                    variant="secondary"
+                    className="text-xs sm:text-[13px] gap-1 cursor-pointer font-medium touch-manipulation"
+                    onClick={() => toggleGroupFilter(g.id, val)}
+                  >
+                    {g.label}: {val} ✕
+                  </Badge>
+                )),
+              )}
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
       {/* Table */}
-      <Card className="shadow-md hidden md:block">
-        <CardContent className="p-0">
+      <Card className="shadow-md hidden md:block overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

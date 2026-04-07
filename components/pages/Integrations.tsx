@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
 import { Textarea } from '@/components/ui/textarea';
 import { platforms as allPlatforms, projects } from '@/data/mockData';
 import { Search, Plus, Edit, Trash2, Eye, Plug, PlugZap, Calendar, User } from 'lucide-react';
@@ -32,7 +33,7 @@ const Integrations = () => {
   const [activeTab, setActiveTab] = useState('connectors');
   const [platList, setPlatList] = useState(allPlatforms);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({ status: [] });
   const [showDialog, setShowDialog] = useState(false);
   const [editPlat, setEditPlat] = useState<Platform | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -41,11 +42,31 @@ const Integrations = () => {
   const [perPage, setPerPage] = useState(10);
   const [formData, setFormData] = useState({ name: '', description: '', status: 'Connected' as Platform['status'], icon: '' });
 
+  const statusFilterGroups = useMemo(
+    () => [{ id: 'status', label: 'Connection status', options: ['Connected', 'Disconnected', 'Expiring'] as string[] }],
+    [],
+  );
+
+  const toggleGroupFilter = (groupId: string, value: string) => {
+    setFilterSelections(prev => {
+      const cur = prev[groupId] ?? [];
+      const next = cur.includes(value) ? cur.filter(x => x !== value) : [...cur, value];
+      return { ...prev, [groupId]: next };
+    });
+    setPage(1);
+  };
+
+  const clearAllFilters = () => {
+    setFilterSelections({ status: [] });
+    setPage(1);
+  };
+
   const filtered = useMemo(() => {
     let list = platList.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
-    if (statusFilter !== 'all') list = list.filter(p => p.status === statusFilter);
+    const st = filterSelections.status ?? [];
+    if (st.length > 0) list = list.filter(p => st.includes(p.status));
     return list;
-  }, [platList, search, statusFilter]);
+  }, [platList, search, filterSelections]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -95,10 +116,10 @@ const Integrations = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-[28px] font-display font-bold">Integrations</h1>
-          <p className="text-[15px] text-muted-foreground">Manage platform connectors and integrations</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">Integrations</h1>
+          <p className="text-sm sm:text-[15px] text-muted-foreground">Manage platform connectors and integrations</p>
         </div>
         {activeTab === 'connectors' && (
           <PermissionGate permission="Edit_platforms">
@@ -126,22 +147,33 @@ const Integrations = () => {
         <>
           {/* Filters */}
           <Card className="shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-3">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Search platforms..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  <Input placeholder="Search platforms..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10 min-h-9" />
                 </div>
-                <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-                  <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Platforms</SelectItem>
-                    <SelectItem value="Connected">Connected</SelectItem>
-                    <SelectItem value="Disconnected">Disconnected</SelectItem>
-                    <SelectItem value="Expiring">Expiring</SelectItem>
-                  </SelectContent>
-                </Select>
+                <GroupedFiltersPopover
+                  groups={statusFilterGroups}
+                  selections={filterSelections}
+                  onToggle={toggleGroupFilter}
+                  onClearAll={clearAllFilters}
+                />
               </div>
+              {(filterSelections.status?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {(filterSelections.status ?? []).map(val => (
+                    <Badge
+                      key={val}
+                      variant="secondary"
+                      className="text-xs sm:text-[13px] gap-1 cursor-pointer font-medium touch-manipulation"
+                      onClick={() => toggleGroupFilter('status', val)}
+                    >
+                      Status: {val} ✕
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
