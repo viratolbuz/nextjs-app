@@ -72,7 +72,7 @@
     --metric-revenue: 177 42% 44%;
     --metric-leads: 210 75% 52%;
     --metric-roas: 45 95% 48%;
-    --metric-cpa: 280 12% 42%;
+    --metric-cpa: 235 45% 35%;
 
     --chart-1-soft: 340 55% 82%;
     --chart-2-soft: 210 60% 80%;
@@ -147,7 +147,7 @@
     --metric-revenue: 177 46% 55%;
     --metric-leads: 210 80% 60%;
     --metric-roas: 45 100% 53%;
-    --metric-cpa: 215 15% 55%;
+    --metric-cpa: 235 60% 65%;
 
     /* Soft chart fills (for bar charts) */
     --chart-1-soft: 350 80% 78%;
