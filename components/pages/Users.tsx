@@ -259,12 +259,12 @@ const Users = () => {
           <p className="text-sm sm:text-[15px] text-muted-foreground">Manage team members, roles and access</p>
         </div>
         <div className="flex gap-2">
-          <PermissionGate permission="Export_performance_entries">
-            {/* <Button variant="outline" size="sm" onClick={exportCSV}>
+          {/* <PermissionGate permission="Export_performance_entries">
+            <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-1" />
               Export
-            </Button> */}
-          </PermissionGate>
+            </Button>
+          </PermissionGate> */}
           <PermissionGate permission="Create_users">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
