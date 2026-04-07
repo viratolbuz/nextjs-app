@@ -20,9 +20,12 @@ const SOFT_COLORS = ['hsl(var(--chart-1-soft))', 'hsl(var(--chart-2-soft))', 'hs
 const months = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'] as const;
 const monthLabels = ['Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'];
 
+type PlatformSortKey = "name" | "projects" | "spend" | "revenue" | "roas" | "status" | "share";
+
 const PlatformReports = () => {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('spend');
+  const [sortKey, setSortKey] = useState<PlatformSortKey>("spend");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [chartView, setChartView] = useState<'monthly' | 'quarterly'>('monthly');
   const [detailPlatform, setDetailPlatform] = useState<string | null>(null);
   const [tablePage, setTablePage] = useState(1);
@@ -32,15 +35,45 @@ const PlatformReports = () => {
     setSelectedPlatforms(prev => prev.includes(name) ? prev.filter(f => f !== name) : [...prev, name]);
   };
 
+  const togglePlatformSort = (k: PlatformSortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "name" || k === "status" ? "asc" : "desc");
+    }
+  };
+
+  const platformSortIndicator = (k: PlatformSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
   const filteredPlatforms = useMemo(() => {
     let list = selectedPlatforms.length > 0 ? platforms.filter(p => selectedPlatforms.includes(p.name)) : platforms;
+    const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (sortBy === 'spend') return parseFloat(b.spendMTD.replace(/[₹L]/g, '')) - parseFloat(a.spendMTD.replace(/[₹L]/g, ''));
-      if (sortBy === 'revenue') return parseFloat(b.avgROAS.replace('x', '')) - parseFloat(a.avgROAS.replace('x', ''));
-      if (sortBy === 'roas') return parseFloat(b.avgROAS.replace('x', '')) - parseFloat(a.avgROAS.replace('x', ''));
-      return 0;
+      const share = (n: string) => chartData.platformSpendShare.find(s => s.name === n || s.name === n.replace(" Ads", ""))?.value ?? 0;
+      switch (sortKey) {
+        case "name":
+          return mul * a.name.localeCompare(b.name);
+        case "projects":
+          return mul * (a.projects - b.projects);
+        case "status":
+          return mul * a.status.localeCompare(b.status);
+        case "spend":
+          return mul * (parseFloat(a.spendMTD.replace(/[₹L]/g, "")) - parseFloat(b.spendMTD.replace(/[₹L]/g, "")));
+        case "revenue":
+          return (
+            mul *
+            (parseFloat(a.spendMTD.replace(/[₹L]/g, "")) * parseFloat(a.avgROAS) -
+              parseFloat(b.spendMTD.replace(/[₹L]/g, "")) * parseFloat(b.avgROAS))
+          );
+        case "roas":
+          return mul * (parseFloat(a.avgROAS.replace("x", "")) - parseFloat(b.avgROAS.replace("x", "")));
+        case "share":
+          return mul * (share(a.name) - share(b.name));
+        default:
+          return 0;
+      }
     });
-  }, [selectedPlatforms, sortBy]);
+  }, [selectedPlatforms, sortKey, sortDir]);
 
   // KPIs use ALL platforms
   const kpis = useMemo(() => {
@@ -181,8 +214,6 @@ const PlatformReports = () => {
               </Button>
               <div className="h-6 w-px bg-border mx-1" />
               <ReportFilters
-                sortBy={sortBy}
-                onSortByChange={setSortBy}
                 items={platforms.map(p => ({ id: p.name, label: p.name }))}
                 selectedItems={selectedPlatforms}
                 onToggleItem={togglePlatform}
@@ -291,13 +322,27 @@ const PlatformReports = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Platform</TableHead>
-                <TableHead>Projects</TableHead>
-                <TableHead>Spend MTD</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Avg ROAS</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Share</TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("name")}>
+                  Platform{platformSortIndicator("name")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("projects")}>
+                  Projects{platformSortIndicator("projects")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("spend")}>
+                  Spend MTD{platformSortIndicator("spend")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("revenue")}>
+                  Revenue{platformSortIndicator("revenue")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("roas")}>
+                  Avg ROAS{platformSortIndicator("roas")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("status")}>
+                  Status{platformSortIndicator("status")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => togglePlatformSort("share")}>
+                  Share{platformSortIndicator("share")}
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>

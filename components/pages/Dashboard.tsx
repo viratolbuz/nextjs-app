@@ -2,7 +2,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { DateRangeProvider, DateRangePicker } from "@/contexts/DateRangeContext";
 import KpiCards from "@/components/dashboard/KpiCards";
 import ChartSection from "@/components/dashboard/ChartSection";
 import InfoGrids from "@/components/dashboard/InfoGrids";
@@ -32,14 +31,9 @@ const Dashboard = () => {
           />
         )}
       </div>
-      <DateRangeProvider>
-        <div className="mb-4">
-          <DateRangePicker className="w-[180px] h-9 text-xs" />
-        </div>
-        <KpiCards />
-        <ChartSection />
-        <InfoGrids />
-      </DateRangeProvider>
+      <KpiCards />
+      <ChartSection />
+      <InfoGrids />
     </div>
   );
 };

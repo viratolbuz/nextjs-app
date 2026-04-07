@@ -8,7 +8,9 @@ import type { User } from '@/data/mockData';
 const INVITES_KEY = 'pms_invites';
 const SIGNUPS_KEY = 'pms_signups';
 const PASSWORDS_KEY = 'pms_passwords';
-const PUBLISHED_APP_URL = 'https://insight-buddy-71.lovable.app';
+const PUBLISHED_APP_URL =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')) ||
+  'https://insight-buddy-71.lovable.app';
 const INVITE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();

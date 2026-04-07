@@ -15,32 +15,50 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { TrendingUp, AlertTriangle, Bell } from "lucide-react";
+import { TrendingUp, AlertTriangle } from "lucide-react";
+import { useDateRange } from "@/contexts/DateRangeContext";
+import { useMemo } from "react";
+import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
 
-const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
+const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
 
 const InfoGrids = () => {
-  const topSpendProjects = [...projects]
-    .sort((a, b) => parseFloat(b.spend.replace(/[₹L,]/g, "")) - parseFloat(a.spend.replace(/[₹L,]/g, "")))
-    .slice(0, 6);
+  const { state } = useDateRange();
+
+  const projectsForRange = useMemo(() => {
+    const from = state.range.from;
+    const to = state.range.to;
+    if (!from || !to) return projects;
+    return projects.filter((p) => {
+      try {
+        const u = parseISO(p.updatedAt);
+        return !isBefore(u, startOfDay(from)) && !isAfter(u, endOfDay(to));
+      } catch {
+        return true;
+      }
+    });
+  }, [state.range]);
+
+  const topSpendProjects = useMemo(
+    () =>
+      [...projectsForRange]
+        .sort((a, b) => parseFloat(b.spend.replace(/[₹L,]/g, "")) - parseFloat(a.spend.replace(/[₹L,]/g, "")))
+        .slice(0, 6),
+    [projectsForRange],
+  );
+
+  const platformSpendShare = chartData.platformSpendShare;
 
   const systemAlerts = notifications.filter((n) => !n.read || n.type === "warning" || n.type === "error").slice(0, 6);
-  const budgetWarnings = projects.filter((p) => p.budgetUsed > 85).slice(0, 4);
+  const budgetWarnings = projectsForRange.filter((p) => p.budgetUsed > 85).slice(0, 4);
 
   const topSpendChart = topSpendProjects.map((p) => ({
     name: p.name.length > 12 ? p.name.slice(0, 12) + "…" : p.name,
     spend: parseFloat(p.spend.replace(/[₹L,]/g, "")),
   }));
 
-  const tooltipStyle = {
-    background: "hsl(var(--card))",
-    border: "1px solid hsl(var(--border))",
-    borderRadius: 8,
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* Top Spenders */}
       <Card className="border-border/50 shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-4">
@@ -56,6 +74,7 @@ const InfoGrids = () => {
                 tick={{ fontSize: 10 }}
                 stroke="hsl(var(--muted-foreground))"
                 tickFormatter={(v) => `₹${v}L`}
+                label={{ value: "Spend (₹ L)", position: "insideBottom", offset: -4, style: { fill: "hsl(var(--muted-foreground))", fontSize: 10 } }}
               />
 
               <YAxis
@@ -64,16 +83,20 @@ const InfoGrids = () => {
                 tick={{ fontSize: 10 }}
                 stroke="hsl(var(--muted-foreground))"
                 width={90}
+                label={{
+                  value: "Project",
+                  angle: -90,
+                  position: "insideLeft",
+                  style: { fill: "hsl(var(--muted-foreground))", fontSize: 10 },
+                }}
               />
 
-              {/* ✅ TOOLTIP FIX */}
               <Tooltip
                 cursor={{ fill: "transparent" }}
                 contentStyle={{
-                  background: "#fff",
-                  border: "none",
+                  background: "hsl(var(--card))",
+                  border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
                 }}
                 formatter={(v) => [`₹${v}L`, "Spend"]}
               />
@@ -95,14 +118,13 @@ const InfoGrids = () => {
         </CardContent>
       </Card>
 
-      {/* Platform Spend Split */}
       <Card className="border-0 shadow-md bg-transparent">
         <CardContent className="p-5">
           <h4 className="font-display font-bold text-sm mb-4">Platform Spend Split</h4>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
-                data={chartData.platformSpendShare}
+                data={platformSpendShare}
                 cx="50%"
                 cy="50%"
                 outerRadius={65}
@@ -113,7 +135,7 @@ const InfoGrids = () => {
                 labelLine={{ strokeWidth: 1 }}
                 stroke="none"
               >
-                {chartData.platformSpendShare.map((_, i) => (
+                {platformSpendShare.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
@@ -121,10 +143,10 @@ const InfoGrids = () => {
             </PieChart>
           </ResponsiveContainer>
           <div className="mt-2 space-y-1.5">
-            {chartData.platformSpendShare.map((p, i) => (
+            {platformSpendShare.map((p, i) => (
               <div key={p.name} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i] }} />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-xs font-medium">{p.name}</span>
                 </div>
                 <span className="text-xs font-bold">{p.spend}</span>
@@ -134,7 +156,6 @@ const InfoGrids = () => {
         </CardContent>
       </Card>
 
-      {/* System Alerts */}
       <Card className="border-border/50 shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-4">

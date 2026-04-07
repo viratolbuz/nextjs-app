@@ -23,10 +23,13 @@ const SOFT_COLORS = EXTENDED_HUES.map((h, i) => `hsl(${h}, ${50 + (i % 3) * 10}%
 const months = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'] as const;
 const monthLabels = ['Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'];
 
+type ProjectSortKey = "name" | "client" | "type" | "spend" | "revenue" | "leads" | "cpl" | "roas" | "status";
+
 const ProjectReports = () => {
   const router = useRouter();
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('spend');
+  const [sortKey, setSortKey] = useState<ProjectSortKey>("spend");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [chartView, setChartView] = useState<'monthly' | 'quarterly'>('monthly');
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(10);
@@ -36,17 +39,44 @@ const ProjectReports = () => {
     setSelectedProjects(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
+  const toggleProjectSort = (k: ProjectSortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "name" || k === "client" || k === "type" || k === "status" ? "asc" : "desc");
+    }
+  };
+
+  const sortIndicator = (k: ProjectSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
   const filteredProjects = useMemo(() => {
     let list = selectedProjects.length > 0 ? projects.filter(p => selectedProjects.includes(p.id)) : projects;
+    const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (sortBy === 'spend') return parseFloat(b.spend.replace(/[₹L]/g, '')) - parseFloat(a.spend.replace(/[₹L]/g, ''));
-      if (sortBy === 'revenue') return parseFloat(b.revenue.replace(/[₹L]/g, '')) - parseFloat(a.revenue.replace(/[₹L]/g, ''));
-      if (sortBy === 'leads') return b.leads - a.leads;
-      if (sortBy === 'roas') return parseFloat(b.roas) - parseFloat(a.roas);
-      if (sortBy === 'cpa') return parseFloat(a.cpl.replace('₹', '')) - parseFloat(b.cpl.replace('₹', ''));
-      return 0;
+      switch (sortKey) {
+        case "name":
+          return mul * a.name.localeCompare(b.name);
+        case "client":
+          return mul * a.client.localeCompare(b.client);
+        case "type":
+          return mul * a.type.localeCompare(b.type);
+        case "status":
+          return mul * a.status.localeCompare(b.status);
+        case "spend":
+          return mul * (parseFloat(a.spend.replace(/[₹L]/g, "")) - parseFloat(b.spend.replace(/[₹L]/g, "")));
+        case "revenue":
+          return mul * (parseFloat(a.revenue.replace(/[₹L]/g, "")) - parseFloat(b.revenue.replace(/[₹L]/g, "")));
+        case "leads":
+          return mul * (a.leads - b.leads);
+        case "roas":
+          return mul * (parseFloat(a.roas) - parseFloat(b.roas));
+        case "cpl":
+          return mul * (parseFloat(a.cpl.replace("₹", "")) - parseFloat(b.cpl.replace("₹", "")));
+        default:
+          return 0;
+      }
     });
-  }, [selectedProjects, sortBy]);
+  }, [selectedProjects, sortKey, sortDir]);
 
   // KPIs use ALL projects
   const kpis = useMemo(() => {
@@ -168,8 +198,6 @@ const ProjectReports = () => {
               </Button>
               <div className="h-6 w-px bg-border mx-1" />
               <ReportFilters
-                sortBy={sortBy}
-                onSortByChange={setSortBy}
                 items={projects.map(p => ({ id: p.id, label: p.name }))}
                 selectedItems={selectedProjects}
                 onToggleItem={toggleProject}
@@ -283,15 +311,33 @@ const ProjectReports = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>#</TableHead>
-                <TableHead>Project</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Spend</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Leads</TableHead>
-                <TableHead>CPL</TableHead>
-                <TableHead>ROAS</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("name")}>
+                  Project{sortIndicator("name")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("client")}>
+                  Client{sortIndicator("client")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("type")}>
+                  Type{sortIndicator("type")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("spend")}>
+                  Spend{sortIndicator("spend")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("revenue")}>
+                  Revenue{sortIndicator("revenue")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("leads")}>
+                  Leads{sortIndicator("leads")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("cpl")}>
+                  CPL{sortIndicator("cpl")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("roas")}>
+                  ROAS{sortIndicator("roas")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectSort("status")}>
+                  Status{sortIndicator("status")}
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>

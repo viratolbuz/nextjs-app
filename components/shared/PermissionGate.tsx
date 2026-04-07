@@ -18,9 +18,8 @@ interface PermissionGateProps {
 }
 
 const PermissionGate = ({ permission, level = 'Full', fallback = null, children }: PermissionGateProps) => {
-  const { hasPermission, isSuperAdmin } = usePermissions();
+  const { hasPermission } = usePermissions();
 
-  if (isSuperAdmin) return <>{children}</>;
   if (!hasPermission(permission, level)) return <>{fallback}</>;
   return <>{children}</>;
 };

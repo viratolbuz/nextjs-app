@@ -26,7 +26,6 @@ const PLATFORM_TABS = [
   { key: 'google-ads', label: 'Google Ads' },
   { key: 'meta-ads', label: 'Meta Ads' },
   { key: 'bing-ads', label: 'Bing Ads' },
-  { key: 'linkedin-ads', label: 'LinkedIn Ads' },
 ];
 
 const Integrations = () => {
@@ -224,7 +223,6 @@ const Integrations = () => {
       {activeTab === 'google-ads' && renderPlatformTab('Google Ads')}
       {activeTab === 'meta-ads' && renderPlatformTab('Meta Ads')}
       {activeTab === 'bing-ads' && renderPlatformTab('Bing Ads')}
-      {activeTab === 'linkedin-ads' && renderPlatformTab('LinkedIn Ads')}
 
       {/* View Connected Projects */}
       <Dialog open={!!viewProjects} onOpenChange={() => setViewProjects(null)}>

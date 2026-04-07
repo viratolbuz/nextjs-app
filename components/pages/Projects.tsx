@@ -30,13 +30,16 @@ const STATUS_COLORS: Record<string, string> = {
 interface Assignment { userId: string; platformId: string; }
 interface PlatformAccount { platformId: string; accountIds: { id: string; status: 'Active' | 'Inactive' }[]; }
 
+type ProjectListSortKey = "name" | "client" | "type" | "manager" | "budget" | "status" | "created";
+
 const Projects = () => {
   const router = useRouter();
   const [projectList, setProjectList] = useState(allProjects);
   const [search, setSearch] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('name');
+  const [sortKey, setSortKey] = useState<ProjectListSortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showDialog, setShowDialog] = useState(false);
@@ -63,6 +66,16 @@ const Projects = () => {
     setPage(1);
   };
 
+  const toggleProjectListSort = (k: ProjectListSortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "name" || k === "client" || k === "type" || k === "manager" || k === "status" ? "asc" : "desc");
+    }
+  };
+
+  const projSortIndicator = (k: ProjectListSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
   const filtered = useMemo(() => {
     let list = projectList.filter(p =>
       p.name.toLowerCase().includes(search.toLowerCase()) || p.client.toLowerCase().includes(search.toLowerCase())
@@ -74,14 +87,28 @@ const Projects = () => {
       if (filterBy === 'country') list = list.filter(p => selectedFilters.includes(p.country));
       if (filterBy === 'client') list = list.filter(p => selectedFilters.includes(p.client));
     }
+    const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'budget') return b.budgetUsed - a.budgetUsed;
-      if (sortBy === 'status') return a.status.localeCompare(b.status);
-      if (sortBy === 'created') return b.createdAt.localeCompare(a.createdAt);
-      return 0;
+      switch (sortKey) {
+        case "name":
+          return mul * a.name.localeCompare(b.name);
+        case "client":
+          return mul * a.client.localeCompare(b.client);
+        case "type":
+          return mul * a.type.localeCompare(b.type);
+        case "manager":
+          return mul * a.manager.localeCompare(b.manager);
+        case "status":
+          return mul * a.status.localeCompare(b.status);
+        case "budget":
+          return mul * (a.budgetUsed - b.budgetUsed);
+        case "created":
+          return mul * a.createdAt.localeCompare(b.createdAt);
+        default:
+          return 0;
+      }
     });
-  }, [projectList, search, filterBy, selectedFilters, sortBy]);
+  }, [projectList, search, filterBy, selectedFilters, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -216,18 +243,6 @@ const Projects = () => {
                 </PopoverContent>
               </Popover>
             )}
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-[13px] font-semibold text-muted-foreground">Sort by:</span>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="budget">Budget %</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
-                  <SelectItem value="created">Created</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           {selectedFilters.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -247,15 +262,29 @@ const Projects = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-bold">Project Name</TableHead>
-                <TableHead className="font-bold">Client</TableHead>
-                <TableHead className="font-bold">Type</TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("name")}>
+                  Project Name{projSortIndicator("name")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("client")}>
+                  Client{projSortIndicator("client")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("type")}>
+                  Type{projSortIndicator("type")}
+                </TableHead>
                 <TableHead className="font-bold">Platform(s)</TableHead>
-                <TableHead className="font-bold">Manager</TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("manager")}>
+                  Manager{projSortIndicator("manager")}
+                </TableHead>
                 <TableHead className="font-bold">Budget</TableHead>
-                <TableHead className="font-bold">Spent %</TableHead>
-                <TableHead className="font-bold">Status</TableHead>
-                <TableHead className="font-bold">Created</TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("budget")}>
+                  Spent %{projSortIndicator("budget")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("status")}>
+                  Status{projSortIndicator("status")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleProjectListSort("created")}>
+                  Created{projSortIndicator("created")}
+                </TableHead>
                 <TableHead className="font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>

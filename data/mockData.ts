@@ -75,6 +75,18 @@ export interface Notification {
 
 // ========== MOCK DATA ==========
 
+/** Canonical UI order for roles (Super Admin → … → Client) */
+export const ROLE_DISPLAY_ORDER = ['Super Admin', 'Admin', 'Manager', 'User', 'Client'] as const;
+
+export function sortRolesByDisplayOrder<T extends { name: string }>(list: T[]): T[] {
+  const order = ROLE_DISPLAY_ORDER as unknown as string[];
+  return [...list].sort((a, b) => {
+    const ia = order.indexOf(a.name);
+    const ib = order.indexOf(b.name);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+}
+
 export const users: User[] = [
   { id: '1', name: 'Super Admin', email: 'super-admin@adtorise.com', role: 'Super Admin', avatar: 'SA', projects: 54, status: 'Active', lastLogin: 'Today', phone: '+91 98765 43210', department: 'Administration' },
   { id: '2', name: 'Amit Mehta', email: 'amit.mehta@adtorise.com', role: 'Admin', avatar: 'AM', projects: 12, status: 'Active', lastLogin: '08:42', phone: '+91 98765 43211', department: 'Administration' },
@@ -106,7 +118,6 @@ export const platforms: Platform[] = [
   { id: '1', name: 'Google Ads', icon: 'G', channels: ['Search', 'Display', 'Shopping', 'YouTube'], status: 'Connected', projects: 28, spendMTD: '₹22.4L', avgROAS: '4.2x', color: 'hsl(var(--chart-1))' },
   { id: '2', name: 'Meta Ads', icon: 'f', channels: ['Facebook', 'Instagram', 'Messenger'], status: 'Connected', projects: 18, spendMTD: '₹16.8L', avgROAS: '3.6x', color: 'hsl(var(--chart-2))' },
   { id: '3', name: 'Bing Ads', icon: 'b', channels: ['Microsoft Search', 'Audience'], status: 'Expiring', projects: 6, spendMTD: '₹5.9L', avgROAS: '2.8x', color: 'hsl(var(--chart-3))', tokenExpiry: '2 days' },
-  { id: '4', name: 'LinkedIn Ads', icon: 'in', channels: ['Sponsored Content', 'Lead Gen Forms'], status: 'Connected', projects: 4, spendMTD: '₹3.1L', avgROAS: '3.1x', color: 'hsl(var(--chart-4))' },
 ];
 
 export const projects: Project[] = [
@@ -182,21 +193,6 @@ export const performanceEntries: PerformanceEntry[] = [
 ];
 
 export const roles: Role[] = [
-  { id: '1', name: 'Admin', type: 'System', userCount: 2, permissions: {
-    View_dashboard: 'Full', View_users: 'Full', Create_users: 'Full', Edit_users: 'Full', View_roles: 'Full', Create_roles: 'Full', Edit_roles: 'Full',
-    View_projects: 'Full', Create_projects: 'Full', Edit_projects: 'Full', Delete_projects: 'Full', View_platforms: 'Full',
-    View_performance_entries: 'Full', Create_performance_entries: 'Full', Edit_performance_entries: 'Full', Delete_performance_entries: 'Full',
-    Team_spend: 'Full', Spend_chart: 'Full', Monthly_spend: 'Full', Team_spend_report: 'Full', Spend_chart_report: 'Full',
-    Project_spend_report: 'Full', Quarterly_spend_report: 'Full', View_reports: 'Full', Platform_spend_report: 'Full',
-    Export_performance_entries: 'Full', Import_performance_entries: 'Full'
-  }},
-  { id: '2', name: 'Client', type: 'Custom', userCount: 3, permissions: {
-    View_dashboard: 'View', View_platforms: 'View'
-  }},
-  { id: '3', name: 'Manager', type: 'Custom', userCount: 6, permissions: {
-    View_dashboard: 'View', View_users: 'View', Create_users: 'Full', Edit_users: 'Full', Delete_users: 'Full',
-    View_projects: 'View', Create_projects: 'Full', Edit_projects: 'Full', Delete_projects: 'Full', View_platforms: 'View'
-  }},
   { id: '4', name: 'Super Admin', type: 'System', userCount: 1, permissions: {
     View_dashboard: 'Full', Manage_dashboard: 'Full', View_users: 'Full', Create_users: 'Full', Edit_users: 'Full', Delete_users: 'Full',
     View_roles: 'Full', Create_roles: 'Full', Edit_roles: 'Full', Delete_roles: 'Full',
@@ -208,8 +204,23 @@ export const roles: Role[] = [
     View_reports: 'Full', Platform_spend_report: 'Full',
     Export_performance_entries: 'Full', Import_performance_entries: 'Full', View_email_histories: 'Full'
   }},
+  { id: '1', name: 'Admin', type: 'System', userCount: 2, permissions: {
+    View_dashboard: 'Full', View_users: 'Full', Create_users: 'Full', Edit_users: 'Full', Delete_users: 'None', View_roles: 'Full', Create_roles: 'Full', Edit_roles: 'Full',
+    View_projects: 'Full', Create_projects: 'Full', Edit_projects: 'Full', Delete_projects: 'Full', View_platforms: 'Full',
+    View_performance_entries: 'Full', Create_performance_entries: 'Full', Edit_performance_entries: 'Full', Delete_performance_entries: 'Full',
+    Team_spend: 'Full', Spend_chart: 'Full', Monthly_spend: 'Full', Team_spend_report: 'Full', Spend_chart_report: 'Full',
+    Project_spend_report: 'Full', Quarterly_spend_report: 'Full', View_reports: 'Full', Platform_spend_report: 'Full',
+    Export_performance_entries: 'Full', Import_performance_entries: 'Full'
+  }},
+  { id: '3', name: 'Manager', type: 'Custom', userCount: 6, permissions: {
+    View_dashboard: 'View', View_users: 'View', Create_users: 'Full', Edit_users: 'Full', Delete_users: 'Full',
+    View_projects: 'View', Create_projects: 'Full', Edit_projects: 'Full', Delete_projects: 'Full', View_platforms: 'View'
+  }},
   { id: '5', name: 'User', type: 'Custom', userCount: 12, permissions: {
     View_dashboard: 'View', View_performance_entries: 'View', Spend_chart: 'View', Monthly_spend: 'View'
+  }},
+  { id: '2', name: 'Client', type: 'Custom', userCount: 3, permissions: {
+    View_dashboard: 'View', View_platforms: 'View'
   }},
 ];
 
@@ -243,10 +254,9 @@ export const chartData = {
     { quarter: 'Q4 (Jan-Mar 2026)', spend: 134.8, revenue: 524.2, users: ['Amit Mehta', 'Priya Sharma', 'Vikram Nair', 'Rahul Kumar', 'Ananya Patel', 'Karan Singh'] },
   ],
   platformSpendShare: [
-    { name: 'Google Ads', value: 46, spend: '₹22.4L' },
-    { name: 'Meta Ads', value: 35, spend: '₹16.8L' },
+    { name: 'Google Ads', value: 50, spend: '₹22.4L' },
+    { name: 'Meta Ads', value: 38, spend: '₹16.8L' },
     { name: 'Bing Ads', value: 12, spend: '₹5.9L' },
-    { name: 'LinkedIn', value: 7, spend: '₹3.1L' },
   ],
   userMonthlySpend: [
     { name: 'Amit Mehta', apr: 3.88, may: 6.82, jun: 7.17, jul: 9.27, aug: 7.94, sep: 9.09, oct: 9.05, nov: 9.94, dec: 11.76, jan: 8.63, feb: 5.83, mar: 5.21, total: 94.59 },
@@ -270,42 +280,39 @@ export const platformActiveUsers: Record<string, number> = {
   'Google Ads': 8,
   'Meta Ads': 6,
   'Bing Ads': 3,
-  'LinkedIn Ads': 2,
 };
 
 // ========== PLATFORM TAB CHART DATA ==========
 export const platformChartData = {
   performanceTrend: [
-    { month: 'Apr 2025', google: 8.5, meta: 6.2, bing: 2.4, linkedin: 1.4 },
-    { month: 'May 2025', google: 10.2, meta: 7.5, bing: 2.8, linkedin: 1.8 },
-    { month: 'Jun 2025', google: 12.3, meta: 9.1, bing: 3.2, linkedin: 2.2 },
-    { month: 'Jul 2025', google: 13.0, meta: 9.8, bing: 3.4, linkedin: 2.2 },
-    { month: 'Aug 2025', google: 13.8, meta: 10.4, bing: 3.6, linkedin: 2.3 },
-    { month: 'Sep 2025', google: 15.0, meta: 11.2, bing: 3.8, linkedin: 2.5 },
-    { month: 'Oct 2025', google: 16.0, meta: 12.0, bing: 4.2, linkedin: 2.6 },
-    { month: 'Nov 2025', google: 16.6, meta: 12.8, bing: 4.3, linkedin: 2.5 },
-    { month: 'Dec 2025', google: 17.8, meta: 13.5, bing: 4.6, linkedin: 2.7 },
-    { month: 'Jan 2026', google: 19.4, meta: 14.8, bing: 5.0, linkedin: 2.9 },
-    { month: 'Feb 2026', google: 20.5, meta: 15.4, bing: 5.4, linkedin: 3.2 },
-    { month: 'Mar 2026', google: 22.2, meta: 16.6, bing: 5.8, linkedin: 3.6 },
+    { month: 'Apr 2025', google: 8.5, meta: 6.2, bing: 2.4 },
+    { month: 'May 2025', google: 10.2, meta: 7.5, bing: 2.8 },
+    { month: 'Jun 2025', google: 12.3, meta: 9.1, bing: 3.2 },
+    { month: 'Jul 2025', google: 13.0, meta: 9.8, bing: 3.4 },
+    { month: 'Aug 2025', google: 13.8, meta: 10.4, bing: 3.6 },
+    { month: 'Sep 2025', google: 15.0, meta: 11.2, bing: 3.8 },
+    { month: 'Oct 2025', google: 16.0, meta: 12.0, bing: 4.2 },
+    { month: 'Nov 2025', google: 16.6, meta: 12.8, bing: 4.3 },
+    { month: 'Dec 2025', google: 17.8, meta: 13.5, bing: 4.6 },
+    { month: 'Jan 2026', google: 19.4, meta: 14.8, bing: 5.0 },
+    { month: 'Feb 2026', google: 20.5, meta: 15.4, bing: 5.4 },
+    { month: 'Mar 2026', google: 22.2, meta: 16.6, bing: 5.8 },
   ],
   quarterlySpend: [
-    { quarter: 'Q1 (Apr-Jun)', google: 31.0, meta: 22.8, bing: 8.4, linkedin: 5.4 },
-    { quarter: 'Q2 (Jul-Sep)', google: 41.8, meta: 31.4, bing: 10.8, linkedin: 7.0 },
-    { quarter: 'Q3 (Oct-Dec)', google: 50.4, meta: 38.3, bing: 13.1, linkedin: 7.8 },
-    { quarter: 'Q4 (Jan-Mar)', google: 62.1, meta: 46.8, bing: 16.2, linkedin: 9.7 },
+    { quarter: 'Q1 (Apr-Jun)', google: 31.0, meta: 22.8, bing: 8.4 },
+    { quarter: 'Q2 (Jul-Sep)', google: 41.8, meta: 31.4, bing: 10.8 },
+    { quarter: 'Q3 (Oct-Dec)', google: 50.4, meta: 38.3, bing: 13.1 },
+    { quarter: 'Q4 (Jan-Mar)', google: 62.1, meta: 46.8, bing: 16.2 },
   ],
   platformMonthlyDetails: [
     { name: 'Google Ads', apr: 8.5, may: 10.2, jun: 12.3, jul: 13.0, aug: 13.8, sep: 15.0, oct: 16.0, nov: 16.6, dec: 17.8, jan: 19.4, feb: 20.5, mar: 22.2, total: 185.3 },
     { name: 'Meta Ads', apr: 6.2, may: 7.5, jun: 9.1, jul: 9.8, aug: 10.4, sep: 11.2, oct: 12.0, nov: 12.8, dec: 13.5, jan: 14.8, feb: 15.4, mar: 16.6, total: 139.3 },
     { name: 'Bing Ads', apr: 2.4, may: 2.8, jun: 3.2, jul: 3.4, aug: 3.6, sep: 3.8, oct: 4.2, nov: 4.3, dec: 4.6, jan: 5.0, feb: 5.4, mar: 5.8, total: 48.5 },
-    { name: 'LinkedIn Ads', apr: 1.4, may: 1.8, jun: 2.2, jul: 2.2, aug: 2.3, sep: 2.5, oct: 2.6, nov: 2.5, dec: 2.7, jan: 2.9, feb: 3.2, mar: 3.6, total: 29.9 },
   ],
   quarterlyPlatformSpend: [
     { name: 'Google Ads', q1: 31.0, q2: 41.8, q3: 50.4, q4: 62.1, total: 185.3 },
     { name: 'Meta Ads', q1: 22.8, q2: 31.4, q3: 38.3, q4: 46.8, total: 139.3 },
     { name: 'Bing Ads', q1: 8.4, q2: 10.8, q3: 13.1, q4: 16.2, total: 48.5 },
-    { name: 'LinkedIn Ads', q1: 5.4, q2: 7.0, q3: 7.8, q4: 9.7, total: 29.9 },
   ],
 };
 

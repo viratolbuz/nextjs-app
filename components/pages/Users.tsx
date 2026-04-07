@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { users as mockUsersArray, roles } from "@/data/mockData";
+import { users as mockUsersArray, roles, sortRolesByDisplayOrder } from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Plus, Download, Edit, Trash2, Eye, Users as UsersIcon } from "lucide-react";
 import PremiumKpiCard, { type KpiCardData } from "@/components/shared/PremiumKpiCard";
@@ -61,16 +61,21 @@ const getInitials = (name: string) => {
   return name.slice(0, 2).toUpperCase();
 };
 
+type UserSortKey = "name" | "email" | "role" | "projects" | "status" | "lastLogin";
+
 const Users = () => {
   const router = useRouter();
   const getAllUsers = useUserStore((s) => s.getAllUsers);
   const addInvite = useUserStore((s) => s.addInvite);
   const updateUserRole = useUserStore((s) => s.updateUserRole);
+  const updateInviteRole = useUserStore((s) => s.updateInviteRole);
+  const removeUserByEmail = useUserStore((s) => s.removeUserByEmail);
   const userList = getAllUsers();
   const [search, setSearch] = useState("");
   const [filterBy, setFilterBy] = useState("all");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState("name");
+  const [sortKey, setSortKey] = useState<UserSortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -94,7 +99,18 @@ const Users = () => {
 
   const filterOptions: Record<string, string[]> = {
     role: [...new Set(userList.map((u) => u.role))],
+    status: ["Active", "Inactive", "Pending"],
   };
+
+  const toggleUserSort = (k: UserSortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "name" || k === "email" || k === "role" || k === "status" || k === "lastLogin" ? "asc" : "desc");
+    }
+  };
+
+  const userSortIndicator = (k: UserSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
 
   const toggleFilter = (val: string) => {
     setSelectedFilters((prev) => (prev.includes(val) ? prev.filter((f) => f !== val) : [...prev, val]));
@@ -110,13 +126,26 @@ const Users = () => {
       if (filterBy === "role") list = list.filter((u) => selectedFilters.includes(u.role));
       if (filterBy === "status") list = list.filter((u) => selectedFilters.includes(u.status));
     }
+    const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      if (sortBy === "role") return a.role.localeCompare(b.role);
-      if (sortBy === "projects") return b.projects - a.projects;
-      return 0;
+      switch (sortKey) {
+        case "name":
+          return mul * a.name.localeCompare(b.name);
+        case "email":
+          return mul * a.email.localeCompare(b.email);
+        case "role":
+          return mul * a.role.localeCompare(b.role);
+        case "status":
+          return mul * a.status.localeCompare(b.status);
+        case "lastLogin":
+          return mul * a.lastLogin.localeCompare(b.lastLogin);
+        case "projects":
+          return mul * (a.projects - b.projects);
+        default:
+          return 0;
+      }
     });
-  }, [userList, search, filterBy, selectedFilters, sortBy]);
+  }, [userList, search, filterBy, selectedFilters, sortKey, sortDir]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -171,14 +200,20 @@ const Users = () => {
 
   const saveUser = () => {
     if (editUser) {
-      // Update role in Zustand store for registered users
-      updateUserRole(formData.email, formData.role);
+      if (editUser.id.startsWith("invite-")) {
+        updateInviteRole(editUser.email, formData.role);
+      } else {
+        updateUserRole(formData.email, formData.role);
+      }
     }
     setShowEditDialog(false);
     setEditError("");
   };
 
-  const deleteUser = (id: string) => {
+  const deleteUser = (target: User) => {
+    if (target.id.startsWith("invite-") || !mockUsersArray.find((mu) => mu.id === target.id)) {
+      removeUserByEmail(target.email);
+    }
     setDeleteConfirm(null);
   };
 
@@ -293,19 +328,7 @@ const Users = () => {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="role">Role</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-[13px] font-semibold text-muted-foreground">Sort by:</span>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[120px] h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="role">Role</SelectItem>
-                  <SelectItem value="projects">Projects</SelectItem>
+                  <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -329,11 +352,24 @@ const Users = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-bold">User</TableHead>
-                <TableHead className="font-bold">Email</TableHead>
-                <TableHead className="font-bold">Role</TableHead>
-                <TableHead className="font-bold">Projects</TableHead>
-                <TableHead className="font-bold">Last Login</TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("name")}>
+                  User{userSortIndicator("name")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("email")}>
+                  Email{userSortIndicator("email")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("role")}>
+                  Role{userSortIndicator("role")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("projects")}>
+                  Projects{userSortIndicator("projects")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("status")}>
+                  Status{userSortIndicator("status")}
+                </TableHead>
+                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("lastLogin")}>
+                  Last Login{userSortIndicator("lastLogin")}
+                </TableHead>
                 <TableHead className="font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -361,18 +397,23 @@ const Users = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm font-semibold">{u.projects}</TableCell>
+                    <TableCell>
+                      <Badge className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}>{u.status}</Badge>
+                    </TableCell>
                     <TableCell className="text-[13px] text-muted-foreground">{u.lastLogin}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title="Proxy Login"
-                          onClick={() => openProxy(u)}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
+                        <PermissionGate permission="View_users" level="View">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Proxy Login"
+                            onClick={() => openProxy(u)}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                        </PermissionGate>
                         <PermissionGate permission="Edit_users">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)}>
                             <Edit className="w-3.5 h-3.5" />
@@ -405,28 +446,33 @@ const Users = () => {
           return (
             <Card key={u.id} className="shadow-md">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-10 h-10 rounded-full ${avatarColor.bg} ${avatarColor.text} flex items-center justify-center text-sm font-bold`}
+                      className={`w-10 h-10 rounded-full shrink-0 ${avatarColor.bg} ${avatarColor.text} flex items-center justify-center text-sm font-bold`}
                     >
                       {getInitials(u.name)}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-bold">{u.name}</p>
-                      <p className="text-[13px] text-muted-foreground">{u.email}</p>
+                      <p className="text-[13px] text-muted-foreground truncate">{u.email}</p>
                     </div>
                   </div>
-                  <Badge className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || ""}`}>
-                    {u.role}
-                  </Badge>
-                  <span className="font-semibold">{u.projects} projects</span>
+                  <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                    <Badge className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || ""}`}>
+                      {u.role}
+                    </Badge>
+                    <Badge className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}>{u.status}</Badge>
+                    <span className="text-sm font-semibold">{u.projects} projects</span>
+                  </div>
                 </div>
                 <div className="flex gap-1">
-                  <Button variant="outline" size="sm" onClick={() => openProxy(u)}>
-                    <Eye className="w-3 h-3 mr-1" />
-                    View
-                  </Button>
+                  <PermissionGate permission="View_users" level="View">
+                    <Button variant="outline" size="sm" onClick={() => openProxy(u)}>
+                      <Eye className="w-3 h-3 mr-1" />
+                      View
+                    </Button>
+                  </PermissionGate>
                   <PermissionGate permission="Edit_users">
                     <Button variant="outline" size="sm" onClick={() => openEdit(u)}>
                       Edit
@@ -489,7 +535,7 @@ const Users = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles
+                    {sortRolesByDisplayOrder(roles)
                       .filter((r) => r.name !== "Super Admin")
                       .map((r) => (
                         <SelectItem key={r.id} value={r.name}>
@@ -621,7 +667,7 @@ const Users = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((r) => (
+                  {sortRolesByDisplayOrder(roles).map((r) => (
                     <SelectItem key={r.id} value={r.name}>
                       {r.name}
                     </SelectItem>
@@ -658,7 +704,13 @@ const Users = () => {
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => deleteUser(deleteConfirm!)}>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const u = userList.find((x) => x.id === deleteConfirm);
+                if (u) deleteUser(u);
+              }}
+            >
               Delete
             </Button>
           </DialogFooter>

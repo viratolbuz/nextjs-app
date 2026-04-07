@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { roles as allRoles } from "@/data/mockData";
+import { roles as allRoles, sortRolesByDisplayOrder } from "@/data/mockData";
 import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import type { Role } from "@/data/mockData";
 import PermissionGate from "@/components/shared/PermissionGate";
@@ -159,8 +159,8 @@ const Roles = () => {
   );
 
   const displayedRoles = useMemo(() => {
-    if (selectedRoleId === "all") return roleList;
-    return roleList.filter((r) => r.id === selectedRoleId);
+    const base = selectedRoleId === "all" ? roleList : roleList.filter((r) => r.id === selectedRoleId);
+    return sortRolesByDisplayOrder(base);
   }, [roleList, selectedRoleId]);
 
   const getModuleLevel = (role: RoleWithPerms, module: string, perms: string[]) => {
@@ -186,7 +186,7 @@ const Roles = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
-              {roleList.map((r) => (
+              {sortRolesByDisplayOrder(roleList).map((r) => (
                 <SelectItem key={r.id} value={r.id}>
                   {r.name}
                 </SelectItem>

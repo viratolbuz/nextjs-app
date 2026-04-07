@@ -5,7 +5,7 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { users as mockUsers, roles } from '@/data/mockData';
+import { users as mockUsers } from '@/data/mockData';
 import type { User } from '@/data/mockData';
 
 // ---- Types ----
@@ -39,8 +39,10 @@ interface UserStore {
   getRegisteredByEmail: (email: string) => RegisteredUser | undefined;
   isEmailRegistered: (email: string) => boolean;
   updateUserRole: (email: string, role: string) => void;
+  updateInviteRole: (email: string, role: string) => void;
+  removeUserByEmail: (email: string) => void;
 
-  // Get all users (mock + registered) as User[]
+  // Get all users (mock + invites + registered) as User[]
   getAllUsers: () => User[];
 
   // Auth
@@ -95,12 +97,14 @@ export const parseInviteToken = (token: string | null | undefined): { email: str
   }
 };
 
+const defaultPublishedUrl =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')) ||
+  'https://insight-buddy-71.lovable.app';
+
 export const resolveSignupBaseUrl = () => {
-  if (typeof window === 'undefined') return 'https://insight-buddy-71.lovable.app';
+  if (typeof window === 'undefined') return defaultPublishedUrl;
   const { origin } = window.location;
-  return (origin.includes('localhost') || origin.includes('127.0.0.1'))
-    ? 'https://insight-buddy-71.lovable.app'
-    : origin;
+  return origin.includes('localhost') || origin.includes('127.0.0.1') ? defaultPublishedUrl : origin;
 };
 
 export const generateSignupLink = (email: string, token: string) => {
@@ -119,6 +123,19 @@ const registeredToUser = (r: RegisteredUser): User => ({
   status: 'Active',
   lastLogin: 'Never',
   phone: r.mobile,
+  department: '',
+});
+
+const inviteToUser = (inv: Invite): User => ({
+  id: `invite-${inv.email.replace(/[^a-zA-Z0-9]+/g, '-').slice(0, 48)}`,
+  name: 'Pending signup',
+  email: inv.email,
+  role: inv.role,
+  avatar: '—',
+  projects: 0,
+  status: 'Inactive',
+  lastLogin: 'Never',
+  phone: '',
   department: '',
 });
 
@@ -156,6 +173,7 @@ export const useUserStore = create<UserStore>()(
         };
         set(state => ({
           registeredUsers: [...state.registeredUsers.filter(u => u.email !== user.email), user],
+          invites: state.invites.filter(i => i.email !== user.email),
         }));
         return user;
       },
@@ -176,13 +194,36 @@ export const useUserStore = create<UserStore>()(
         }));
       },
 
+      updateInviteRole: (email, role) => {
+        set(state => ({
+          invites: state.invites.map(i =>
+            i.email === normalize(email) ? { ...i, role } : i
+          ),
+        }));
+      },
+
+      removeUserByEmail: (email) => {
+        const ne = normalize(email);
+        set(state => ({
+          invites: state.invites.filter(i => i.email !== ne),
+          registeredUsers: state.registeredUsers.filter(u => u.email !== ne),
+        }));
+      },
+
       getAllUsers: () => {
         const registered = get().registeredUsers;
+        const invites = get().invites;
         const mockEmails = new Set(mockUsers.map(u => u.email.toLowerCase()));
+
+        const inviteUsers = invites
+          .filter(inv => !registered.some(r => r.email === inv.email) && !mockEmails.has(inv.email))
+          .map(inviteToUser);
+
         const signupUsers = registered
           .filter(r => !mockEmails.has(r.email.toLowerCase()))
           .map(registeredToUser);
-        return [...mockUsers, ...signupUsers];
+
+        return [...mockUsers, ...inviteUsers, ...signupUsers];
       },
 
       verifyLogin: (email, password) => {

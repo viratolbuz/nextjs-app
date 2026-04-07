@@ -29,9 +29,12 @@ const SOFT_COLORS = [
 const months = ['apr','may','jun','jul','aug','sep','oct','nov','dec','jan','feb','mar'] as const;
 const monthLabels = ['Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'];
 
+type TeamSortKey = "name" | "role" | "projects" | "spend" | "revenue" | "leads" | "roas" | "cpa";
+
 const TeamReports = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('spend');
+  const [sortKey, setSortKey] = useState<TeamSortKey>("spend");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [chartView, setChartView] = useState<'monthly' | 'quarterly'>('monthly');
   const [proxyView, setProxyView] = useState<typeof users[0] | null>(null);
   const [proxyTab, setProxyTab] = useState('report');
@@ -45,18 +48,49 @@ const TeamReports = () => {
     setSelectedUsers(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   };
 
+  const toggleTeamSort = (k: TeamSortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "name" || k === "role" ? "asc" : "desc");
+    }
+  };
+
+  const teamSortIndicator = (k: TeamSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+
   // Filtered users for charts & table only
   const filteredUsers = useMemo(() => {
     let list = selectedUsers.length > 0 ? users.filter(u => selectedUsers.includes(u.id)) : users;
+    const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       const aData = chartData.userMonthlySpend.find(d => d.name === a.name);
       const bData = chartData.userMonthlySpend.find(d => d.name === b.name);
-      if (sortBy === 'spend') return (bData?.total || 0) - (aData?.total || 0);
-      if (sortBy === 'revenue') return (bData?.total || 0) * 3.8 - (aData?.total || 0) * 3.8;
-      if (sortBy === 'leads') return b.projects - a.projects;
-      return 0;
+      const aSpend = aData?.total || 0;
+      const bSpend = bData?.total || 0;
+      const aLeads = Math.round(aSpend * 1000 / 380);
+      const bLeads = Math.round(bSpend * 1000 / 380);
+      switch (sortKey) {
+        case "name":
+          return mul * a.name.localeCompare(b.name);
+        case "role":
+          return mul * a.role.localeCompare(b.role);
+        case "projects":
+          return mul * (a.projects - b.projects);
+        case "spend":
+          return mul * (aSpend - bSpend);
+        case "revenue":
+          return mul * (aSpend * 3.8 - bSpend * 3.8);
+        case "leads":
+          return mul * (aLeads - bLeads);
+        case "roas":
+          return mul * (3.8 - 3.8);
+        case "cpa":
+          return mul * (380 - 380);
+        default:
+          return mul * (aSpend - bSpend);
+      }
     });
-  }, [selectedUsers, sortBy]);
+  }, [selectedUsers, sortKey, sortDir]);
 
   // KPI cards use ALL users (not filtered)
   const kpis = useMemo(() => {
@@ -315,8 +349,6 @@ const TeamReports = () => {
               </Button>
               <div className="h-6 w-px bg-border mx-1" />
               <ReportFilters
-                sortBy={sortBy}
-                onSortByChange={setSortBy}
                 items={users.map(u => ({ id: u.id, label: u.name }))}
                 selectedItems={selectedUsers}
                 onToggleItem={toggleUser}
@@ -431,14 +463,30 @@ const TeamReports = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Rank</TableHead>
-                <TableHead>Team Member</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Projects</TableHead>
-                <TableHead>Spend</TableHead>
-                <TableHead>Revenue</TableHead>
-                <TableHead>Leads</TableHead>
-                <TableHead>ROAS</TableHead>
-                <TableHead>CPA</TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("name")}>
+                  Team Member{teamSortIndicator("name")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("role")}>
+                  Role{teamSortIndicator("role")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("projects")}>
+                  Projects{teamSortIndicator("projects")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("spend")}>
+                  Spend{teamSortIndicator("spend")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("revenue")}>
+                  Revenue{teamSortIndicator("revenue")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("leads")}>
+                  Leads{teamSortIndicator("leads")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("roas")}>
+                  ROAS{teamSortIndicator("roas")}
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleTeamSort("cpa")}>
+                  CPA{teamSortIndicator("cpa")}
+                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateRangeProvider, DateRangePicker, useDateRange } from '@/contexts/DateRangeContext';
+import { DateRangePicker } from '@/contexts/DateRangeContext';
 import { projects, performanceEntries, platforms, chartData } from '@/data/mockData';
 import { ArrowLeft, DollarSign, TrendingUp, Target, Users, Globe, Clock, FileText, History } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';

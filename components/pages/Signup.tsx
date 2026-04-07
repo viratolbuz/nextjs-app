@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, Eye, EyeOff, Upload, CheckCircle2, ShieldAlert } from 'lucide-react';
-import Image from "next/image";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUserStore, parseInviteToken } from '@/store/userStore';
 
@@ -216,14 +215,7 @@ const Signup = () => {
               <label className="relative cursor-pointer group">
                 <div className="w-20 h-20 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden group-hover:border-primary transition-colors">
                   {previewUrl ? (
-                    <Image
-                      src={previewUrl}
-                      alt="Profile"
-                      width={80}
-                      height={80}
-                      className="w-full h-full object-cover"
-                      unoptimized
-                    />
+                    <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
                   ) : (
                     <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                   )}

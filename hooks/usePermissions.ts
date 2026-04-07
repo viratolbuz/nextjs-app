@@ -70,7 +70,8 @@ export const usePermissions = () => {
   const canView = useCallback((permKey: string) => hasPermission(permKey, 'View'), [hasPermission]);
   const canEdit = useCallback((permKey: string) => hasPermission(permKey, 'Full'), [hasPermission]);
 
-  const isSuperAdmin = activeRole?.name === 'Super Admin' || activeRole?.name === 'Super-admin' || activeRole?.name === 'Admin';
+  const isSuperAdmin =
+    activeRole?.name === 'Super Admin' || activeRole?.name === 'Super-admin';
 
   // Module-level CRUD helpers
   const can = useCallback((action: 'view' | 'create' | 'edit' | 'delete' | 'export' | 'import', module: string): boolean => {
