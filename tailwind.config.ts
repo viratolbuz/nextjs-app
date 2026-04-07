@@ -13,11 +13,14 @@ export default {
     container: {
       center: true,
       padding: "2rem",
-      screens: {
-        "2xl": "1400px",
-      },
     },
     extend: {
+      screens: {
+        xl: "1700px",
+        "2xl": "1800px",
+        "3xl": "1900px",
+      },
+
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Space Grotesk", "system-ui", "sans-serif"],
@@ -96,11 +99,13 @@ export default {
           cpa: "hsl(var(--metric-cpa))",
         },
       },
+
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -115,6 +120,7 @@ export default {
           to: { opacity: "1", transform: "translateY(0)" },
         },
       },
+
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",

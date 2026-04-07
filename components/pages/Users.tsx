@@ -249,10 +249,10 @@ const Users = () => {
         </div>
         <div className="flex gap-2">
           <PermissionGate permission="Export_performance_entries">
-            <Button variant="outline" size="sm" onClick={exportCSV}>
+            {/* <Button variant="outline" size="sm" onClick={exportCSV}>
               <Download className="w-4 h-4 mr-1" />
               Export
-            </Button>
+            </Button> */}
           </PermissionGate>
           <PermissionGate permission="Create_users">
             <Button size="sm" onClick={openCreate}>

@@ -54,14 +54,14 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
         )}
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border px-6 py-3 flex items-center gap-4">
           <div className="flex-1 flex items-center gap-3">
-            <div className="relative max-w-md flex-1">
+            {/* <div className="relative max-w-md flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search projects, users, platforms..."
                 className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
-            </div>
+            </div> */}
           </div>
           {showDashboardDateRange && (
             <DateRangePicker compact className="h-9 text-xs shrink-0 max-w-[220px]" />

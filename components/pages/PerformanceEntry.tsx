@@ -108,9 +108,9 @@ const PerformanceEntryPage = () => {
           <p className="text-[15px] text-muted-foreground">Log daily Spend, Leads, CPL, Revenue and ROAS per project</p>
         </div>
         <div className="flex gap-2">
-          <PermissionGate permission="Export_performance_entries">
+          {/* <PermissionGate permission="Export_performance_entries">
             <Button variant="outline" size="sm" onClick={exportCSV} className="bg-success/10 text-success border-success/30 hover:bg-success/20"><Download className="w-4 h-4 mr-1" />Export</Button>
-          </PermissionGate>
+          </PermissionGate> */}
           <PermissionGate permission="Import_performance_entries">
             <Button variant="outline" size="sm" className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"><FileDown className="w-4 h-4 mr-1" />Download Template</Button>
             <Button variant="outline" size="sm"><Upload className="w-4 h-4 mr-1" />Import</Button>

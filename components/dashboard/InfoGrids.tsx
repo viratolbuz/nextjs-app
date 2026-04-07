@@ -118,7 +118,7 @@ const InfoGrids = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-md bg-transparent">
+      <Card className="border-0 shadow-md ">
         <CardContent className="p-5">
           <h4 className="font-display font-bold text-sm mb-4">Platform Spend Split</h4>
           <ResponsiveContainer width="100%" height={220}>

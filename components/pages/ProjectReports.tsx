@@ -155,7 +155,7 @@ const ProjectReports = () => {
           <h1 className="text-[28px] font-display font-bold">Project Reports</h1>
           <p className="text-[15px] text-muted-foreground">All {projects.length} campaigns ranked by performance</p>
         </div>
-        <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1" />Export CSV</Button>
+        {/* <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1" />Export CSV</Button> */}
       </div>
 
       {/* KPIs - always ALL data */}

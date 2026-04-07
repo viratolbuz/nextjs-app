@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 280 25% 18%;
 
-    --primary: 340 72% 52%;
+    --primary: 350 100% 67%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 320 28% 92%;
@@ -33,11 +33,11 @@
 
     --border: 320 18% 90%;
     --input: 320 18% 90%;
-    --ring: 340 72% 52%;
+    --ring: 350 100% 67%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 280 22% 16%;
+    --sidebar-background: 224 37% 17%;
     --sidebar-foreground: 320 15% 92%;
     --sidebar-primary: 340 72% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -49,7 +49,7 @@
     --olbuz-o: 177 46% 44%;
     --olbuz-l: 45 100% 53%;
     --olbuz-b: 192 28% 39%;
-    --olbuz-u: 340 72% 52%;
+    --olbuz-u: 350 100% 67%;
     --olbuz-z: 280 22% 28%;
 
     --success: 142 65% 40%;
@@ -59,7 +59,7 @@
     --info: 210 75% 52%;
     --info-foreground: 0 0% 100%;
 
-    --chart-1: 340 72% 52%;
+    --chart-1: 350 100% 67%;
     --chart-2: 210 75% 52%;
     --chart-3: 45 95% 52%;
     --chart-4: 177 42% 44%;
@@ -68,7 +68,7 @@
     --chart-7: 30 78% 52%;
     --chart-8: 180 55% 42%;
 
-    --metric-spend: 340 72% 52%;
+    --metric-spend: 350 100% 67%;
     --metric-revenue: 177 42% 44%;
     --metric-leads: 210 75% 52%;
     --metric-roas: 45 95% 48%;
@@ -85,7 +85,7 @@
 
     --scrollbar-track: 320 22% 94%;
     --scrollbar-thumb: 340 45% 72%;
-    --scrollbar-thumb-hover: 340 72% 52%;
+    --scrollbar-thumb-hover: 350 100% 67%;
   }
 
   .dark {

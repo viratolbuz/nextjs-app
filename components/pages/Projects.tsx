@@ -180,9 +180,9 @@ const Projects = () => {
           <p className="text-[15px] text-muted-foreground"><span className="font-semibold text-foreground">{stats.total}</span> campaigns across all platforms</p>
         </div>
         <div className="flex gap-2">
-          <PermissionGate permission="Export_performance_entries">
+          {/* <PermissionGate permission="Export_performance_entries">
             <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1" />Export CSV</Button>
-          </PermissionGate>
+          </PermissionGate> */}
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}><Plus className="w-4 h-4 mr-1" />Create Project</Button>
           </PermissionGate>

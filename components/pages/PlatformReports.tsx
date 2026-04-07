@@ -156,7 +156,7 @@ const PlatformReports = () => {
           <h1 className="text-[28px] font-display font-bold">Platform Reports</h1>
           <p className="text-[15px] text-muted-foreground">Cross-platform performance comparison</p>
         </div>
-        <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1" />Export CSV</Button>
+        {/* <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-1" />Export CSV</Button> */}
       </div>
 
       {/* KPIs - always ALL data */}
