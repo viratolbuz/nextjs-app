@@ -45,7 +45,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-background overflow-x-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar className="hidden md:flex" />
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetContent side="left" className="p-0 w-[min(100vw,280px)] sm:max-w-[280px] border-r-0 overflow-y-auto">

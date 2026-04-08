@@ -15,12 +15,18 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { TrendingUp, AlertTriangle } from "lucide-react";
+import { TrendingUp, AlertTriangle, Split } from "lucide-react";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { useMemo } from "react";
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
 
-const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))"];
+const COLORS = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+];
+
+
 
 const InfoGrids = () => {
   const { state } = useDateRange();
@@ -42,15 +48,23 @@ const InfoGrids = () => {
   const topSpendProjects = useMemo(
     () =>
       [...projectsForRange]
-        .sort((a, b) => parseFloat(b.spend.replace(/[₹L,]/g, "")) - parseFloat(a.spend.replace(/[₹L,]/g, "")))
+        .sort(
+          (a, b) =>
+            parseFloat(b.spend.replace(/[₹L,]/g, "")) -
+            parseFloat(a.spend.replace(/[₹L,]/g, "")),
+        )
         .slice(0, 6),
     [projectsForRange],
   );
 
   const platformSpendShare = chartData.platformSpendShare;
 
-  const systemAlerts = notifications.filter((n) => !n.read || n.type === "warning" || n.type === "error").slice(0, 6);
-  const budgetWarnings = projectsForRange.filter((p) => p.budgetUsed > 85).slice(0, 4);
+  const systemAlerts = notifications
+    .filter((n) => !n.read || n.type === "warning" || n.type === "error")
+    .slice(0, 6);
+  const budgetWarnings = projectsForRange
+    .filter((p) => p.budgetUsed > 85)
+    .slice(0, 4);
 
   const topSpendChart = topSpendProjects.map((p) => ({
     name: p.name.length > 12 ? p.name.slice(0, 12) + "…" : p.name,
@@ -60,34 +74,43 @@ const InfoGrids = () => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <Card className="border-border/50 shadow-md">
-        <CardContent className="p-5">
+        <CardContent className="p-5 h-full">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-4 h-4 text-primary" />
-            <h4 className="font-display font-bold text-sm">Top Spenders</h4>
+            <h4 className="text-lg font-display font-bold">Top Spenders</h4>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height="90%" maxHeight={340}>
             <BarChart data={topSpendChart} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--border))"
+                horizontal={false}
+              />
 
               <XAxis
                 type="number"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 12 }}
                 stroke="hsl(var(--muted-foreground))"
                 tickFormatter={(v) => `₹${v}L`}
-                label={{ value: "Spend (₹ L)", position: "insideBottom", offset: -4, style: { fill: "hsl(var(--muted-foreground))", fontSize: 10 } }}
+                label={{
+                  value: "Spend (₹ L)",
+                  position: "insideBottom",
+                  offset: -4,
+                  style: { fill: "hsl(var(--muted-foreground))", fontSize: 16 },
+                }}
               />
 
               <YAxis
                 type="category"
                 dataKey="name"
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 12 }}
                 stroke="hsl(var(--muted-foreground))"
                 width={90}
                 label={{
                   value: "Project",
                   angle: -90,
                   position: "insideLeft",
-                  style: { fill: "hsl(var(--muted-foreground))", fontSize: 10 },
+                  style: { fill: "hsl(var(--muted-foreground))", fontSize: 16 },
                 }}
               />
 
@@ -110,7 +133,9 @@ const InfoGrids = () => {
                 animationDuration={800}
               >
                 {topSpendChart.map((_, index) => (
-                  <Cell key={`cell-${index}`} fillOpacity={0.9} />
+                  <Cell key={`cell-${index}`} 
+                  fill={COLORS[index % COLORS.length]}
+                  fillOpacity={0.9} />
                 ))}
               </Bar>
             </BarChart>
@@ -120,17 +145,22 @@ const InfoGrids = () => {
 
       <Card className="border-0 shadow-md ">
         <CardContent className="p-5">
-          <h4 className="font-display font-bold text-sm mb-4">Platform Spend Split</h4>
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="flex items-center gap-2 mb-4">
+            <Split className="w-4 h-4 text-primary" />
+            <h4 className="text-lg font-display font-bold">
+              Platform Spend Split
+            </h4>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
                 data={platformSpendShare}
                 cx="50%"
                 cy="50%"
-                outerRadius={65}
-                innerRadius={38}
+                outerRadius={100}
+                innerRadius={60}
                 dataKey="value"
-                paddingAngle={2}
+                // paddingAngle={2}
                 label={({ value }) => `${value}%`}
                 labelLine={{ strokeWidth: 1 }}
                 stroke="none"
@@ -144,9 +174,15 @@ const InfoGrids = () => {
           </ResponsiveContainer>
           <div className="mt-2 space-y-1.5">
             {platformSpendShare.map((p, i) => (
-              <div key={p.name} className="flex items-center justify-between text-sm">
+              <div
+                key={p.name}
+                className="flex items-center justify-between text-sm"
+              >
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  />
                   <span className="text-xs font-medium">{p.name}</span>
                 </div>
                 <span className="text-xs font-bold">{p.spend}</span>
@@ -156,11 +192,11 @@ const InfoGrids = () => {
         </CardContent>
       </Card>
 
-      <Card className="border-border/50 shadow-md">
+      {/* <Card className="border-border/50 shadow-md">
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-warning" />
-            <h4 className="font-display font-bold text-sm">System Alerts</h4>
+            <AlertTriangle className="w-4 h-4 text-primary" />
+            <h4 className="text-lg font-display font-bold">System Alerts</h4>
           </div>
           <div className="space-y-2 h-auto overflow-y-auto scrollbar-themed pr-1">
             {budgetWarnings.map((p) => (
@@ -170,7 +206,9 @@ const InfoGrids = () => {
               >
                 <div className="min-w-0">
                   <p className="text-xs font-semibold truncate">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">Budget: {p.budget}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Budget: {p.budget}
+                  </p>
                 </div>
                 <Badge variant="destructive" className="text-[10px] shrink-0">
                   {p.budgetUsed}% used
@@ -178,19 +216,24 @@ const InfoGrids = () => {
               </div>
             ))}
             {systemAlerts.map((n) => (
-              <div key={n.id} className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30">
+              <div
+                key={n.id}
+                className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30"
+              >
                 <div
                   className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.type === "warning" ? "bg-warning" : n.type === "error" ? "bg-destructive" : n.type === "success" ? "bg-emerald-500" : "bg-blue-500"}`}
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs leading-snug">{n.message}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{n.time}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {n.time}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
     </div>
   );
 };

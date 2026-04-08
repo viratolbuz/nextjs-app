@@ -127,12 +127,12 @@ const KpiCards = () => {
       trend: 15,
     },
     {
-      label: "Average CPL",
-      value: `₹${Math.round(kpis.avgCPL)}`,
-      icon: Target,
-      subtitle: "Cost per lead",
-      accent: "purple",
-      trend: -3,
+      label: "Average ROAS",
+      value: `${kpis.avgROAS.toFixed(1)}x`,
+      icon: BarChart3,
+      subtitle: "Return on ad spend",
+      accent: "cyan",
+      trend: 5,
     },
     {
       label: "Total Leads",
@@ -143,12 +143,12 @@ const KpiCards = () => {
       trend: 22,
     },
     {
-      label: "Average ROAS",
-      value: `${kpis.avgROAS.toFixed(1)}x`,
-      icon: BarChart3,
-      subtitle: "Return on ad spend",
-      accent: "cyan",
-      trend: 5,
+      label: "Average CPL",
+      value: `₹${Math.round(kpis.avgCPL)}`,
+      icon: Target,
+      subtitle: "Cost per lead",
+      accent: "purple",
+      trend: -3,
     },
   ];
 

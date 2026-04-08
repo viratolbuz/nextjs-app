@@ -122,12 +122,12 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
     >
       {/* Logo */}
       <div className="p-4 flex items-center gap-3 border-b border-sidebar-border/50">
-        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground font-bold text-sm shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
           A
         </div>
         {!effectiveCollapsed && (
           <div className="min-w-0">
-            <h1 className="font-display font-bold text-[15px] text-sidebar-primary-foreground">AdtoRise PMS</h1>
+            <h1 className="font-display font-bold text-[15px] text-primary-foreground">AdtoRise PMS</h1>
             <p className="text-[11px] text-sidebar-foreground/60">an olbuz company</p>
           </div>
         )}
@@ -135,9 +135,9 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
 
       {/* Proxy Banner */}
       {/* {proxyUser && !collapsed && (
-        <div className="mx-3 mt-3 p-2 rounded-lg border border-sidebar-primary/30 bg-sidebar-primary/10">
-          <p className="text-[12px] text-sidebar-primary font-medium">Viewing as: {proxyUser.name}</p>
-          <button onClick={exitProxy} className="text-[12px] text-sidebar-primary hover:underline mt-0.5">
+        <div className="mx-3 mt-3 p-2 rounded-lg border border-primary/30 bg-primary/10">
+          <p className="text-[12px] text-primary font-medium">Viewing as: {proxyUser.name}</p>
+          <button onClick={exitProxy} className="text-[12px] text-primary hover:underline mt-0.5">
             ← Back to Admin
           </button>
         </div>
@@ -157,7 +157,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition-all duration-200",
                     "text-sidebar-foreground hover:bg-sidebar-accent/60",
-                    isChildActive && "text-sidebar-primary",
+                    isChildActive && "text-primary",
                   )}
                   style={
                     isChildActive
@@ -199,7 +199,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
                             className={cn(
                               "flex items-center gap-3 px-3 py-2 rounded-lg text-[14px] transition-all duration-200 relative",
                               isActive
-                                ? "text-sidebar-primary-foreground font-medium"
+                                ? "text-primary-foreground font-medium"
                                 : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/40",
                             )}
                           >
@@ -209,8 +209,8 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
                                 className="absolute inset-0 rounded-lg"
                                 style={{
                                   background:
-                                    "linear-gradient(135deg, hsl(var(--sidebar-primary) / 0.9) 0%, hsl(var(--sidebar-primary) / 0.7) 100%)",
-                                  boxShadow: "0 2px 12px hsl(var(--sidebar-primary) / 0.3)",
+                                    "linear-gradient(135deg, hsl(var(--primary) / 0.9) 0%, hsl(var(--primary) / 0.7) 100%)",
+                                  boxShadow: "0 2px 12px hsl(var(--primary) / 0.3)",
                                 }}
                                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
                               />
@@ -238,7 +238,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] transition-all duration-200 relative",
                   isActive
-                    ? "text-sidebar-primary-foreground font-medium"
+                    ? "text-primary-foreground font-medium"
                     : "text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent/40",
                 )}
               >
@@ -248,8 +248,8 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
                     className="absolute inset-0 rounded-lg"
                     style={{
                       background:
-                        "linear-gradient(135deg, hsl(var(--sidebar-primary) / 0.9) 0%, hsl(var(--sidebar-primary) / 0.7) 100%)",
-                      boxShadow: "0 2px 12px hsl(var(--sidebar-primary) / 0.3)",
+                        "linear-gradient(135deg, hsl(var(--primary) / 0.9) 0%, hsl(var(--primary) / 0.7) 100%)",
+                      boxShadow: "0 2px 12px hsl(var(--primary) / 0.3)",
                     }}
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
@@ -279,7 +279,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
         )}
         {!effectiveCollapsed && activeUser && (
           <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold shrink-0">
+            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
               {activeUser.avatar}
             </div>
             <div className="flex-1 min-w-0">

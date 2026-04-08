@@ -6,14 +6,51 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GroupedFiltersPopover, type FilterSelections } from "@/components/shared/GroupedFiltersPopover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { users as mockUsersArray, roles, sortRolesByDisplayOrder } from "@/data/mockData";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  GroupedFiltersPopover,
+  type FilterSelections,
+} from "@/components/shared/GroupedFiltersPopover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  users as mockUsersArray,
+  roles,
+  sortRolesByDisplayOrder,
+} from "@/data/mockData";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Plus, Download, Edit, Trash2, Eye, Users as UsersIcon } from "lucide-react";
-import PremiumKpiCard, { type KpiCardData } from "@/components/shared/PremiumKpiCard";
+import {
+  Search,
+  Plus,
+  Download,
+  Edit,
+  Trash2,
+  Eye,
+  Users as UsersIcon,
+  LogIn,
+} from "lucide-react";
+import PremiumKpiCard, {
+  type KpiCardData,
+} from "@/components/shared/PremiumKpiCard";
 import { UserCheck, UserX } from "lucide-react";
 import PermissionGate from "@/components/shared/PermissionGate";
 import type { User } from "@/data/mockData";
@@ -21,6 +58,12 @@ import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import { useUserStore, generateSignupLink } from "@/store/userStore";
 import { sendInviteEmail } from "@/services/email.service";
 import { Copy, CheckCheck, Loader2, Mail, Link2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const AVATAR_COLORS = [
   { bg: "bg-blue-600", text: "text-white" },
@@ -37,31 +80,43 @@ const AVATAR_COLORS = [
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
   "Super Admin": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  Admin: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  Admin:
+    "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   Manager: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  Client: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  Client:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   User: "bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-300",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  Active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  Active:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   Inactive: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  Pending: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
+  Pending:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
 };
 
 const getAvatarColor = (name: string) => {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < name.length; i++)
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
 
 const getInitials = (name: string) => {
   const parts = name.split(" ").filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length >= 2)
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
 };
 
-type UserSortKey = "name" | "email" | "role" | "projects" | "status" | "lastLogin";
+type UserSortKey =
+  | "name"
+  | "email"
+  | "role"
+  | "projects"
+  | "status"
+  | "lastLogin";
 
 const Users = () => {
   const router = useRouter();
@@ -72,7 +127,10 @@ const Users = () => {
   const removeUserByEmail = useUserStore((s) => s.removeUserByEmail);
   const userList = getAllUsers();
   const [search, setSearch] = useState("");
-  const [filterSelections, setFilterSelections] = useState<FilterSelections>({ status: [], role: [] });
+  const [filterSelections, setFilterSelections] = useState<FilterSelections>({
+    status: [],
+    role: [],
+  });
   const [sortKey, setSortKey] = useState<UserSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(1);
@@ -98,8 +156,16 @@ const Users = () => {
 
   const filterGroups = useMemo(
     () => [
-      { id: "status", label: "Status", options: ["Active", "Inactive", "Pending"] as string[] },
-      { id: "role", label: "Role", options: [...new Set(userList.map((u) => u.role))].sort() },
+      {
+        id: "status",
+        label: "Status",
+        options: ["Active", "Inactive", "Pending"] as string[],
+      },
+      {
+        id: "role",
+        label: "Role",
+        options: [...new Set(userList.map((u) => u.role))].sort(),
+      },
     ],
     [userList],
   );
@@ -107,7 +173,9 @@ const Users = () => {
   const toggleGroupFilter = (groupId: string, value: string) => {
     setFilterSelections((prev) => {
       const cur = prev[groupId] ?? [];
-      const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+      const next = cur.includes(value)
+        ? cur.filter((x) => x !== value)
+        : [...cur, value];
       return { ...prev, [groupId]: next };
     });
     setPage(1);
@@ -122,16 +190,26 @@ const Users = () => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
       setSortKey(k);
-      setSortDir(k === "name" || k === "email" || k === "role" || k === "status" || k === "lastLogin" ? "asc" : "desc");
+      setSortDir(
+        k === "name" ||
+          k === "email" ||
+          k === "role" ||
+          k === "status" ||
+          k === "lastLogin"
+          ? "asc"
+          : "desc",
+      );
     }
   };
 
-  const userSortIndicator = (k: UserSortKey) => (sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "");
+  const userSortIndicator = (k: UserSortKey) =>
+    sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const filtered = useMemo(() => {
     let list = userList.filter(
       (u) =>
-        u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase()),
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase()),
     );
     const st = filterSelections.status ?? [];
     const rl = filterSelections.role ?? [];
@@ -169,13 +247,20 @@ const Users = () => {
   };
   const openEdit = (u: User) => {
     setEditUser(u);
-    setFormData({ name: u.name, email: u.email, phone: u.phone || "", role: u.role });
+    setFormData({
+      name: u.name,
+      email: u.email,
+      phone: u.phone || "",
+      role: u.role,
+    });
     setEditError("");
     setShowEditDialog(true);
   };
 
   const [inviteSending, setInviteSending] = useState(false);
-  const [inviteMethod, setInviteMethod] = useState<"email" | "link-only">("link-only");
+  const [inviteMethod, setInviteMethod] = useState<"email" | "link-only">(
+    "link-only",
+  );
 
   const sendInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -222,7 +307,10 @@ const Users = () => {
   };
 
   const deleteUser = (target: User) => {
-    if (target.id.startsWith("invite-") || !mockUsersArray.find((mu) => mu.id === target.id)) {
+    if (
+      target.id.startsWith("invite-") ||
+      !mockUsersArray.find((mu) => mu.id === target.id)
+    ) {
       removeUserByEmail(target.email);
     }
     setDeleteConfirm(null);
@@ -232,7 +320,8 @@ const Users = () => {
     const csv = [
       "Name,Email,Role,Projects,Status,Last Login,Phone",
       ...filtered.map(
-        (u) => `${u.name},${u.email},${u.role},${u.projects},${u.status},${u.lastLogin},${u.phone || ""}`,
+        (u) =>
+          `${u.name},${u.email},${u.role},${u.projects},${u.status},${u.lastLogin},${u.phone || ""}`,
       ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -255,8 +344,12 @@ const Users = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">User Management</h1>
-          <p className="text-sm sm:text-[15px] text-muted-foreground">Manage team members, roles and access</p>
+          <h1 className="text-xl sm:text-2xl md:text-[28px] font-display font-bold tracking-tight">
+            User Management
+          </h1>
+          <p className="text-sm sm:text-[15px] text-muted-foreground">
+            Manage team members, roles and access
+          </p>
         </div>
         <div className="flex gap-2">
           {/* <PermissionGate permission="Export_performance_entries">
@@ -275,7 +368,15 @@ const Users = () => {
       </div>
 
       {/* KPI Cards - Total, Active, Inactive */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div
+        className="grid
+  grid-cols-1
+  md:grid-cols-2
+  xl:grid-cols-3
+  2xl:grid-cols-3
+  3xl:grid-cols-3
+  gap-4"
+      >
         {(
           [
             {
@@ -288,7 +389,9 @@ const Users = () => {
             },
             {
               label: "Active Users",
-              value: userList.filter((u) => u.status === "Active").length.toString(),
+              value: userList
+                .filter((u) => u.status === "Active")
+                .length.toString(),
               icon: UserCheck,
               accent: "emerald" as const,
               subtitle: "Currently active",
@@ -296,7 +399,9 @@ const Users = () => {
             },
             {
               label: "Inactive Users",
-              value: userList.filter((u) => u.status === "Inactive").length.toString(),
+              value: userList
+                .filter((u) => u.status === "Inactive")
+                .length.toString(),
               icon: UserX,
               accent: "red" as const,
               subtitle: "Deactivated accounts",
@@ -330,7 +435,7 @@ const Users = () => {
               onClearAll={clearAllFilters}
             />
           </div>
-          {(filterSelections.status?.length || filterSelections.role?.length) ? (
+          {filterSelections.status?.length || filterSelections.role?.length ? (
             <div className="flex flex-wrap gap-1.5">
               {filterGroups.flatMap((g) =>
                 (filterSelections[g.id] ?? []).map((val) => (
@@ -350,106 +455,167 @@ const Users = () => {
       </Card>
 
       {/* Table */}
-      <Card className="shadow-md hidden md:block overflow-hidden">
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("name")}>
-                  User{userSortIndicator("name")}
-                </TableHead>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("email")}>
-                  Email{userSortIndicator("email")}
-                </TableHead>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("role")}>
-                  Role{userSortIndicator("role")}
-                </TableHead>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("projects")}>
-                  Projects{userSortIndicator("projects")}
-                </TableHead>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("status")}>
-                  Status{userSortIndicator("status")}
-                </TableHead>
-                <TableHead className="font-bold cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleUserSort("lastLogin")}>
-                  Last Login{userSortIndicator("lastLogin")}
-                </TableHead>
-                <TableHead className="font-bold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginated.map((u) => {
-                const avatarColor = getAvatarColor(u.name);
-                return (
-                  <TableRow key={u.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`w-9 h-9 rounded-full ${avatarColor.bg} ${avatarColor.text} flex items-center justify-center text-[13px] font-bold shadow-sm`}
-                        >
-                          {getInitials(u.name)}
+      <Card className="shadow-md hidden lg:block overflow-hidden">
+        <CardContent className="p-0 overflow-x-auto scrollbar-themed">
+          <div className="min-w-[1200px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("name")}
+                  >
+                    User{userSortIndicator("name")}
+                  </TableHead>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("email")}
+                  >
+                    Email{userSortIndicator("email")}
+                  </TableHead>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("role")}
+                  >
+                    Role{userSortIndicator("role")}
+                  </TableHead>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("projects")}
+                  >
+                    Projects{userSortIndicator("projects")}
+                  </TableHead>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("status")}
+                  >
+                    Status{userSortIndicator("status")}
+                  </TableHead>
+                  <TableHead
+                    className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                    onClick={() => toggleUserSort("lastLogin")}
+                  >
+                    Last Login{userSortIndicator("lastLogin")}
+                  </TableHead>
+                  <TableHead className="font-bold">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((u) => {
+                  const avatarColor = getAvatarColor(u.name);
+                  return (
+                    <TableRow key={u.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-full ${avatarColor.bg} ${avatarColor.text} flex items-center justify-center text-[13px] font-bold shadow-sm`}
+                          >
+                            {getInitials(u.name)}
+                          </div>
+                          <span className="text-sm font-semibold">
+                            {u.name}
+                          </span>
                         </div>
-                        <span className="text-sm font-semibold">{u.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[15px] text-muted-foreground">{u.email}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || "bg-gray-100 text-gray-600"}`}
-                      >
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-semibold">{u.projects}</TableCell>
-                    <TableCell>
-                      <Badge className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}>{u.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-[13px] text-muted-foreground">{u.lastLogin}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <PermissionGate permission="View_users" level="View">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Proxy Login"
-                            onClick={() => openProxy(u)}
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Button>
-                        </PermissionGate>
-                        <PermissionGate permission="Edit_users">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(u)}>
-                            <Edit className="w-3.5 h-3.5" />
-                          </Button>
-                        </PermissionGate>
-                        <PermissionGate permission="Delete_users">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => setDeleteConfirm(u.id)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </PermissionGate>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="text-[15px] text-muted-foreground">
+                        {u.email}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || "bg-gray-100 text-gray-600"}`}
+                        >
+                          {u.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm font-semibold">
+                        {u.projects}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}
+                        >
+                          {u.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-[13px] text-muted-foreground">
+                        {u.lastLogin}
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <div className="flex gap-1">
+                            {/* Proxy Login */}
+                            <PermissionGate
+                              permission="View_users"
+                              level="View"
+                            >
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openProxy(u)}
+                                  >
+                                    <LogIn className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Proxy Login</TooltipContent>
+                              </Tooltip>
+                            </PermissionGate>
+
+                            {/* Edit */}
+                            <PermissionGate permission="Edit_users">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => openEdit(u)}
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit User</TooltipContent>
+                              </Tooltip>
+                            </PermissionGate>
+
+                            {/* Delete */}
+                            <PermissionGate permission="Delete_users">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-destructive"
+                                    onClick={() => setDeleteConfirm(u.id)}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete User</TooltipContent>
+                              </Tooltip>
+                            </PermissionGate>
+                          </div>
+                        </TooltipProvider>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
       {/* Mobile Cards */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {paginated.map((u) => {
           const avatarColor = getAvatarColor(u.name);
           return (
             <Card key={u.id} className="shadow-md">
               <CardContent className="p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-10 h-10 rounded-full shrink-0 ${avatarColor.bg} ${avatarColor.text} flex items-center justify-center text-sm font-bold`}
@@ -458,26 +624,44 @@ const Users = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold">{u.name}</p>
-                      <p className="text-[13px] text-muted-foreground truncate">{u.email}</p>
+                      <p className="text-[13px] text-muted-foreground truncate">
+                        {u.email}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 justify-end">
-                    <Badge className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || ""}`}>
+                    <Badge
+                      className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[u.role] || ""}`}
+                    >
                       {u.role}
                     </Badge>
-                    <Badge className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}>{u.status}</Badge>
-                    <span className="text-sm font-semibold">{u.projects} projects</span>
+                    <Badge
+                      className={`text-[12px] border-0 font-bold ${STATUS_COLORS[u.status] || ""}`}
+                    >
+                      {u.status}
+                    </Badge>
+                    <span className="text-sm font-semibold">
+                      {u.projects} projects
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   <PermissionGate permission="View_users" level="View">
-                    <Button variant="outline" size="sm" onClick={() => openProxy(u)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openProxy(u)}
+                    >
                       <Eye className="w-3 h-3 mr-1" />
                       View
                     </Button>
                   </PermissionGate>
                   <PermissionGate permission="Edit_users">
-                    <Button variant="outline" size="sm" onClick={() => openEdit(u)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEdit(u)}
+                    >
                       Edit
                     </Button>
                   </PermissionGate>
@@ -511,7 +695,9 @@ const Users = () => {
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-display font-bold">Invite New User</DialogTitle>
+            <DialogTitle className="font-display font-bold">
+              Invite New User
+            </DialogTitle>
             <p className="text-[13px] text-muted-foreground mt-1">
               Send a signup invitation link to the user's email address
             </p>
@@ -552,10 +738,16 @@ const Users = () => {
                 </p>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowInviteDialog(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={sendInvite} disabled={!inviteEmail.trim() || inviteSending}>
+                <Button
+                  onClick={sendInvite}
+                  disabled={!inviteEmail.trim() || inviteSending}
+                >
                   {inviteSending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -581,36 +773,57 @@ const Users = () => {
               </div>
               <div>
                 <p className="font-bold text-foreground">
-                  {inviteMethod === "email" ? "Invitation Email Sent!" : "Invitation Link Ready!"}
+                  {inviteMethod === "email"
+                    ? "Invitation Email Sent!"
+                    : "Invitation Link Ready!"}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {inviteMethod === "email" ? (
                     <>
-                      Email sent to <span className="font-semibold text-foreground">{inviteEmail}</span>. You can also
-                      share the link below.
+                      Email sent to{" "}
+                      <span className="font-semibold text-foreground">
+                        {inviteEmail}
+                      </span>
+                      . You can also share the link below.
                     </>
                   ) : (
                     <>
-                      Share this signup link with <span className="font-semibold text-foreground">{inviteEmail}</span>
+                      Share this signup link with{" "}
+                      <span className="font-semibold text-foreground">
+                        {inviteEmail}
+                      </span>
                     </>
                   )}
                 </p>
               </div>
               {/* Copyable signup link */}
               <div className="bg-muted rounded-lg p-3 text-left">
-                <label className="text-[13px] font-bold text-muted-foreground block mb-1">Signup Link</label>
+                <label className="text-[13px] font-bold text-muted-foreground block mb-1">
+                  Signup Link
+                </label>
                 <div className="flex items-center gap-2">
                   <code className="text-[13px] bg-background px-2 py-1.5 rounded border flex-1 break-all select-all">
                     {inviteLink}
                   </code>
-                  <Button size="sm" variant="outline" onClick={copyLink} className="shrink-0">
-                    {linkCopied ? <CheckCheck className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={copyLink}
+                    className="shrink-0"
+                  >
+                    {linkCopied ? (
+                      <CheckCheck className="w-4 h-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
               {inviteMethod === "link-only" && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 text-left border border-amber-200 dark:border-amber-800">
-                  <p className="text-[13px] text-amber-700 dark:text-amber-300 font-semibold">⚡ EmailJS not configured</p>
+                  <p className="text-[13px] text-amber-700 dark:text-amber-300 font-semibold">
+                    ⚡ EmailJS not configured
+                  </p>
                   <p className="text-[12px] text-amber-600 dark:text-amber-400 mt-0.5">
                     To send real emails, configure EmailJS credentials in{" "}
                     <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">
@@ -621,12 +834,17 @@ const Users = () => {
               )}
               <p className="text-[13px] text-muted-foreground">
                 The user will sign up with the{" "}
-                <Badge className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[inviteRole] || ""}`}>
+                <Badge
+                  className={`text-[12px] border-0 font-bold ${ROLE_BADGE_COLORS[inviteRole] || ""}`}
+                >
                   {inviteRole}
                 </Badge>{" "}
                 role and get immediate access.
               </p>
-              <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setShowInviteDialog(false)}
+              >
                 Done
               </Button>
             </div>
@@ -638,14 +856,21 @@ const Users = () => {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display font-bold">Edit User</DialogTitle>
+            <DialogTitle className="font-display font-bold">
+              Edit User
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 max-h-[60vh] px-1 pb-1 overflow-y-auto scrollbar-themed">
             <div>
               <label className="text-[14px] font-bold mb-1 block">
                 Full Name <span className="text-destructive">*</span>
               </label>
-              <Input value={formData.name} onChange={(e) => setFormData((f) => ({ ...f, name: e.target.value }))} />
+              <Input
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, name: e.target.value }))
+                }
+              />
             </div>
             <div>
               <label className="text-[14px] font-bold mb-1 block">
@@ -654,18 +879,30 @@ const Users = () => {
               <Input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData((f) => ({ ...f, email: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, email: e.target.value }))
+                }
               />
             </div>
             <div>
-              <label className="text-[14px] font-bold mb-1 block">Mobile Number</label>
-              <Input value={formData.phone} onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))} />
+              <label className="text-[14px] font-bold mb-1 block">
+                Mobile Number
+              </label>
+              <Input
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData((f) => ({ ...f, phone: e.target.value }))
+                }
+              />
             </div>
             <div>
               <label className="text-[14px] font-bold mb-1 block">
                 Role <span className="text-destructive">*</span>
               </label>
-              <Select value={formData.role} onValueChange={(v) => setFormData((f) => ({ ...f, role: v }))}>
+              <Select
+                value={formData.role}
+                onValueChange={(v) => setFormData((f) => ({ ...f, role: v }))}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -688,20 +925,29 @@ const Users = () => {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={saveUser} disabled={!formData.name.trim() || !formData.email.trim()}>
+            <Button
+              onClick={saveUser}
+              disabled={!formData.name.trim() || !formData.email.trim()}
+            >
               Update
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+      <Dialog
+        open={!!deleteConfirm}
+        onOpenChange={() => setDeleteConfirm(null)}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display font-bold">Confirm Delete</DialogTitle>
+            <DialogTitle className="font-display font-bold">
+              Confirm Delete
+            </DialogTitle>
           </DialogHeader>
           <p className="text-[15px] text-muted-foreground">
-            Are you sure you want to delete this user? This action cannot be undone.
+            Are you sure you want to delete this user? This action cannot be
+            undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
