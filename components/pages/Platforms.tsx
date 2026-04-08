@@ -9,10 +9,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
-import { platforms as allPlatforms, projects } from '@/data/mockData';
+import { platforms as allPlatforms, projects } from '@/services/appData.service';
 import { Search, Plus, Edit, Trash2, Globe, Eye, Plug, PlugZap, Calendar, User, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import PremiumKpiCard, { type KpiCardData } from '@/components/shared/PremiumKpiCard';
-import type { Platform } from '@/data/mockData';
+import type { Platform } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
 

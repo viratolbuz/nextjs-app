@@ -8,7 +8,7 @@ import {
   BarChart3,
   Users,
 } from "lucide-react";
-import { projects, performanceEntries } from "@/data/mockData";
+import { projects, performanceEntries } from "@/services/appData.service";
 import { useMemo } from "react";
 import PremiumKpiCard, {
   type KpiCardData,

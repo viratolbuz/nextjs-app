@@ -36,7 +36,7 @@ import {
   users as mockUsersArray,
   roles,
   sortRolesByDisplayOrder,
-} from "@/data/mockData";
+} from "@/services/appData.service";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Search,
@@ -53,7 +53,7 @@ import PremiumKpiCard, {
 } from "@/components/shared/PremiumKpiCard";
 import { UserCheck, UserX } from "lucide-react";
 import PermissionGate from "@/components/shared/PermissionGate";
-import type { User } from "@/data/mockData";
+import type { User } from "@/services/appData.service";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import { useUserStore, generateSignupLink } from "@/store/userStore";
 import { sendInviteEmail } from "@/services/email.service";

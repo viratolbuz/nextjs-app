@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { users, chartData, projects } from '@/data/mockData';
+import { users, chartData, projects } from '@/services/appData.service';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, Download, TrendingUp, Users as UsersIcon, DollarSign, Target, BarChart3, FolderKanban } from 'lucide-react';
 import ReportFilters from '@/components/shared/ReportFilters';

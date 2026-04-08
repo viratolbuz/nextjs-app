@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { projects, projectChartData } from '@/data/mockData';
+import { projects, projectChartData } from '@/services/appData.service';
 import { Download, Eye, DollarSign, TrendingUp, Target, Layers, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line, Area, Legend } from 'recharts';
 import ReportFilters from '@/components/shared/ReportFilters';

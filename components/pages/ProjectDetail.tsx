@@ -8,7 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateRangePicker } from '@/contexts/DateRangeContext';
-import { projects, performanceEntries, platforms, chartData } from '@/data/mockData';
+import {
+  projects,
+  performanceEntries,
+  platforms,
+  chartData,
+} from '@/services/appData.service';
 import { ArrowLeft, DollarSign, TrendingUp, Target, Users, Globe, Clock, FileText, History } from 'lucide-react';
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import GlassTabs from '@/components/shared/GlassTabs';
