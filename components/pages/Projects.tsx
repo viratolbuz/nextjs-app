@@ -31,7 +31,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { projects as allProjects, users, platforms } from "@/data/mockData";
+import {
+  projects as allProjects,
+  users,
+  platforms,
+} from "@/services/appData.service";
 import {
   Search,
   Plus,
@@ -48,7 +52,7 @@ import {
   GroupedFiltersPopover,
   type FilterSelections,
 } from "@/components/shared/GroupedFiltersPopover";
-import type { Project } from "@/data/mockData";
+import type { Project } from "@/services/appData.service";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import PermissionGate from "@/components/shared/PermissionGate";
 import PremiumKpiCard, {

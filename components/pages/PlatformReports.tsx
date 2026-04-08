@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { platforms, chartData, platformChartData, projects } from '@/data/mockData';
+import {
+  platforms,
+  chartData,
+  platformChartData,
+  projects,
+} from '@/services/appData.service';
 import { Download, Eye, Globe, DollarSign, TrendingUp, Target, Layers, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, Area, Legend } from 'recharts';
 import ReportFilters from '@/components/shared/ReportFilters';

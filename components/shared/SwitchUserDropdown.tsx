@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Users, Search, ArrowLeft } from 'lucide-react';
-import { users } from '@/data/mockData';
-import type { User } from '@/data/mockData';
+import { users } from '@/services/appData.service';
+import type { User } from '@/services/appData.service';
 
 interface Props {
   currentProxyUser: User;

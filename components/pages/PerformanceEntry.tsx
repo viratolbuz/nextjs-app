@@ -8,9 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { performanceEntries as allEntries, projects, platforms } from '@/data/mockData';
+import {
+  performanceEntries as allEntries,
+  projects,
+  platforms,
+} from '@/services/appData.service';
 import { Search, Plus, Upload, Download, Edit, Trash2, Eye, FileDown } from 'lucide-react';
-import type { PerformanceEntry } from '@/data/mockData';
+import type { PerformanceEntry } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
 import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';

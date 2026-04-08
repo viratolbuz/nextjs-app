@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { projects, notifications, chartData } from "@/data/mockData";
+import { projects, notifications, chartData } from "@/services/appData.service";
 import {
   PieChart,
   Pie,

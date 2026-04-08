@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { chartData, performanceEntries } from "@/data/mockData";
+import { chartData, performanceEntries } from "@/services/appData.service";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
@@ -113,7 +113,7 @@ const ChartSection = () => {
                 />
                 <XAxis
                   dataKey={xKey}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 12 }}
                   stroke="hsl(var(--muted-foreground))"
                   label={{
                     value: "Period",
@@ -124,7 +124,7 @@ const ChartSection = () => {
                 />
                 <YAxis
                   yAxisId="left"
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 12 }}
                   stroke="hsl(var(--muted-foreground))"
                   tickFormatter={(v) => `₹${v}L`}
                   label={{
@@ -137,7 +137,7 @@ const ChartSection = () => {
                 <YAxis
                   yAxisId="right"
                   orientation="right"
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 12 }}
                   stroke="hsl(var(--muted-foreground))"
                   label={{
                     value: "Leads, ROAS & CPA",

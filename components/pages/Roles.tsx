@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { roles as allRoles, sortRolesByDisplayOrder } from "@/data/mockData";
+import {
+  roles as allRoles,
+  sortRolesByDisplayOrder,
+} from "@/services/appData.service";
 import { Plus, Edit, Trash2, Shield } from "lucide-react";
-import type { Role } from "@/data/mockData";
+import type { Role } from "@/services/appData.service";
 import PermissionGate from "@/components/shared/PermissionGate";
 import { GroupedFiltersPopover, type FilterSelections } from "@/components/shared/GroupedFiltersPopover";
 
