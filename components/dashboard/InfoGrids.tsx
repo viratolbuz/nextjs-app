@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import { TrendingUp, AlertTriangle, Split } from "lucide-react";
 import { useDateRange } from "@/contexts/DateRangeContext";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
 
 const COLORS = [
@@ -26,10 +26,9 @@ const COLORS = [
   "hsl(var(--chart-3))",
 ];
 
-
-
 const InfoGrids = () => {
   const { state } = useDateRange();
+  const [activeBarIndex, setActiveBarIndex] = useState(null);
 
   const projectsForRange = useMemo(() => {
     const from = state.range.from;
@@ -126,16 +125,26 @@ const InfoGrids = () => {
 
               <Bar
                 dataKey="spend"
-                fill="hsl(var(--primary))"
                 radius={[0, 4, 4, 0]}
-                activeBar={false}
                 isAnimationActive
                 animationDuration={800}
+                onMouseLeave={() => setActiveBarIndex(null)}
               >
                 {topSpendChart.map((_, index) => (
-                  <Cell key={`cell-${index}`} 
-                  fill={COLORS[index % COLORS.length]}
-                  fillOpacity={0.9} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                    fillOpacity={activeBarIndex === index ? 1 : 0.6}
+                    style={{
+                      transition: "all 0.3s ease",
+                      filter:
+                        activeBarIndex === index
+                          ? "brightness(1.2)"
+                          : "brightness(1)",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={() => setActiveBarIndex(index as any)}
+                  />
                 ))}
               </Bar>
             </BarChart>

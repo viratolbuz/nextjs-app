@@ -103,8 +103,8 @@ const ChartSection = () => {
           </div>
         </div>
 
-        <div className="w-full overflow-x-scroll scrollbar-themed">
-          <div className="min-w-[700px] sm:min-w-[900px] md:min-w-[1100px] h-[280px] sm:h-[340px] md:h-[400px]">
+        <div className="w-full overflow-x-scroll scrollbar-themed lg:scrollbar-none">
+          <div className="min-w-[1200px] h-[280px] sm:h-[340px] md:h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartSeries}>
                 <CartesianGrid
