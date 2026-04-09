@@ -53,7 +53,8 @@ import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
-import { DateRangePicker } from "@/contexts/DateRangeContext";
+import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import { parse } from "date-fns";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -116,6 +117,7 @@ type TeamSortKey =
   | "cpa";
 
 const TeamReports = () => {
+  const { inRange } = useDateRange("reports-team");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<TeamSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -212,8 +214,20 @@ const TeamReports = () => {
     filteredUserNames.includes(u.name),
   );
 
+  const visibleMonthIndexes = useMemo(
+    () =>
+      monthLabels
+        .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
+        .filter((x) => inRange(x.d))
+        .map((x) => x.i),
+    [inRange],
+  );
+
   const monthlyAgg = useMemo(() => {
-    return monthLabels.map((label, i) => {
+    return monthLabels
+      .map((label, i) => ({ label, i }))
+      .filter((x) => visibleMonthIndexes.includes(x.i))
+      .map(({ label, i }) => {
       const key = months[i];
       let totalSpend = 0;
       filteredMonthlySpend.forEach((u) => {
@@ -230,8 +244,8 @@ const TeamReports = () => {
         roas: perf.roas,
         cpa: perf.cpa,
       };
-    });
-  }, [filteredMonthlySpend]);
+      });
+  }, [filteredMonthlySpend, visibleMonthIndexes]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -580,7 +594,7 @@ const TeamReports = () => {
             Performance breakdown by team
           </p>
         </div>
-        <DateRangePicker className="w-[150px]" />
+        <DateRangePicker scope="reports-team" className="w-auto" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
@@ -732,12 +746,12 @@ const TeamReports = () => {
                   <th className="text-left py-2 px-3 font-semibold">
                     Team Name
                   </th>
-                  {monthLabels.map((m) => (
+                  {visibleMonthIndexes.map((idx) => (
                     <th
-                      key={m}
+                      key={monthLabels[idx]}
                       className="text-center py-2 px-2 font-medium text-xs"
                     >
-                      {m}
+                      {monthLabels[idx]}
                     </th>
                   ))}
                   <th className="text-center py-2 px-3 font-semibold">
@@ -754,11 +768,14 @@ const TeamReports = () => {
                     <td className="py-2 px-3 text-primary font-medium">
                       {item.name}
                     </td>
-                    {months.map((k) => (
+                    {visibleMonthIndexes.map((idx) => {
+                      const k = months[idx];
+                      return (
                       <td key={k} className="text-center py-2 px-2 text-xs">
                         {(item[k] as number).toFixed(2)}
                       </td>
-                    ))}
+                      );
+                    })}
                     <td className="text-center py-2 px-3 font-bold text-primary">
                       {item.total.toFixed(2)}
                     </td>

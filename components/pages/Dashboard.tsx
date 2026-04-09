@@ -6,6 +6,7 @@ import KpiCards from "@/components/dashboard/KpiCards";
 import ChartSection from "@/components/dashboard/ChartSection";
 import InfoGrids from "@/components/dashboard/InfoGrids";
 import SwitchUserDropdown from "@/components/shared/SwitchUserDropdown";
+import { DateRangePicker } from "@/contexts/DateRangeContext";
 
 const Dashboard = () => {
   const { currentUser, proxyUser, proxyLogin, exitProxy } = useAuth();
@@ -23,13 +24,16 @@ const Dashboard = () => {
             </Badge>
           </p>
         </div>
-        {proxyUser && (
-          <SwitchUserDropdown
-            currentProxyUser={proxyUser}
-            onSwitchUser={(u) => proxyLogin(u.id)}
-            onBackToAdmin={exitProxy}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          <DateRangePicker scope="dashboard" className="w-auto" />
+          {proxyUser && (
+            <SwitchUserDropdown
+              currentProxyUser={proxyUser}
+              onSwitchUser={(u) => proxyLogin(u.id)}
+              onBackToAdmin={exitProxy}
+            />
+          )}
+        </div>
       </div>
       <KpiCards />
       <ChartSection />

@@ -128,7 +128,7 @@ const ProjectDetail = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-display font-semibold">Timeline Report</h3>
                   <div className="flex gap-2">
-                    <DateRangePicker className="w-[150px]" />
+                    <DateRangePicker className="w-auto" />
                     <Select value={platformFilter} onValueChange={setPlatformFilter}>
                       <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
                       <SelectContent>

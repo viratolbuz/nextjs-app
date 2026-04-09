@@ -1,8 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useRef, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { DateRangePicker } from '@/contexts/DateRangeContext';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -18,8 +17,6 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
   const { proxyUser, exitProxy, currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
-  const showDashboardDateRange = pathname === '/dashboard';
   const dispatch = useAppDispatch();
   const notifications = useAppSelector(state => state.notifications.list);
   const [showNotifs, setShowNotifs] = useState(false);
@@ -67,9 +64,6 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           </Button>
           <div className="flex-1 flex items-center gap-3 min-w-0">
         </div>
-          {showDashboardDateRange && (
-            <DateRangePicker compact className="h-9 text-xs shrink-0 w-full max-w-[220px] sm:w-auto" />
-          )}
           <button type="button" onClick={toggleTheme} className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0 touch-manipulation" title="Toggle theme">
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>

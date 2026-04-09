@@ -43,7 +43,8 @@ import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
 import ScrollableChartTooltip from "@/components/dashboard/ScrollableChartTooltip";
-import { DateRangePicker } from "@/contexts/DateRangeContext";
+import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import { parse, parseISO } from "date-fns";
 
 const EXTENDED_HUES = [
   22, 177, 45, 192, 350, 280, 30, 160, 120, 250, 10, 200, 60, 310, 80, 140,
@@ -97,6 +98,7 @@ type ProjectSortKey =
 
 const ProjectReports = () => {
   const router = useRouter();
+  const { inRange } = useDateRange("reports-project");
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<ProjectSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -130,6 +132,13 @@ const ProjectReports = () => {
       selectedProjects.length > 0
         ? projects.filter((p) => selectedProjects.includes(p.id))
         : projects;
+    list = list.filter((p) => {
+      try {
+        return inRange(parseISO(p.updatedAt || p.createdAt));
+      } catch {
+        return true;
+      }
+    });
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -167,24 +176,24 @@ const ProjectReports = () => {
           return 0;
       }
     });
-  }, [selectedProjects, sortKey, sortDir]);
+  }, [selectedProjects, sortKey, sortDir, inRange]);
 
   const kpis = useMemo(() => {
-    const totalSpend = projects.reduce(
+    const totalSpend = filteredProjects.reduce(
       (a, p) => a + parseFloat(p.spend.replace(/[₹L]/g, "")),
       0,
     );
-    const totalRevenue = projects.reduce(
+    const totalRevenue = filteredProjects.reduce(
       (a, p) => a + parseFloat(p.revenue.replace(/[₹L]/g, "")),
       0,
     );
-    const totalLeads = projects.reduce((a, p) => a + p.leads, 0);
+    const totalLeads = filteredProjects.reduce((a, p) => a + p.leads, 0);
     const avgRoas =
-      projects.reduce((a, p) => a + parseFloat(p.roas), 0) /
-      (projects.length || 1);
+      filteredProjects.reduce((a, p) => a + parseFloat(p.roas), 0) /
+      (filteredProjects.length || 1);
     const avgCpa =
-      projects.reduce((a, p) => a + parseFloat(p.cpl.replace("₹", "")), 0) /
-      (projects.length || 1);
+      filteredProjects.reduce((a, p) => a + parseFloat(p.cpl.replace("₹", "")), 0) /
+      (filteredProjects.length || 1);
     return [
       {
         label: "Total Spend",
@@ -204,7 +213,16 @@ const ProjectReports = () => {
         icon: Layers,
       },
     ];
-  }, []);
+  }, [filteredProjects]);
+
+  const visibleMonthIndexes = useMemo(
+    () =>
+      monthLabels
+        .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
+        .filter((x) => inRange(x.d))
+        .map((x) => x.i),
+    [inRange],
+  );
 
   const filteredProjectNames = filteredProjects.map((p) => p.name);
   const filteredProjectDetails = projectChartData.projectMonthlyDetails.filter(
@@ -212,7 +230,10 @@ const ProjectReports = () => {
   );
 
   const monthlyAgg = useMemo(() => {
-    return monthLabels.map((label, i) => {
+    return monthLabels
+      .map((label, i) => ({ label, i }))
+      .filter((x) => visibleMonthIndexes.includes(x.i))
+      .map(({ label, i }) => {
       const key = months[i];
       let totalSpend = 0;
       filteredProjectDetails.forEach((p) => {
@@ -229,8 +250,8 @@ const ProjectReports = () => {
         leads: Math.round(perf.leads * ratio),
         roas: perf.roas,
       };
-    });
-  }, [filteredProjectDetails]);
+      });
+  }, [filteredProjectDetails, visibleMonthIndexes]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -277,7 +298,7 @@ const ProjectReports = () => {
             All {projects.length} campaigns ranked by performance
           </p>
         </div>
-        <DateRangePicker className="w-[150px]" />
+        <DateRangePicker scope="reports-project" className="w-auto" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -451,12 +472,12 @@ const ProjectReports = () => {
                   <th className="text-left py-2 px-3 font-semibold">
                     Project Name
                   </th>
-                  {monthLabels.map((m) => (
+                  {visibleMonthIndexes.map((idx) => (
                     <th
-                      key={m}
+                      key={monthLabels[idx]}
                       className="text-right py-2 px-2 font-medium text-xs"
                     >
-                      {m.split(" ")[0]}
+                      {monthLabels[idx].split(" ")[0]}
                     </th>
                   ))}
                   <th className="text-right py-2 px-3 font-semibold">
@@ -473,11 +494,14 @@ const ProjectReports = () => {
                     <td className="py-2 px-3 text-primary font-medium">
                       {item.name}
                     </td>
-                    {months.map((k) => (
+                    {visibleMonthIndexes.map((idx) => {
+                      const k = months[idx];
+                      return (
                       <td key={k} className="text-right py-2 px-2 text-xs">
                         {(item[k] as number).toFixed(2)}
                       </td>
-                    ))}
+                      );
+                    })}
                     <td className="text-right py-2 px-3 font-bold text-primary">
                       {item.total.toFixed(2)}
                     </td>

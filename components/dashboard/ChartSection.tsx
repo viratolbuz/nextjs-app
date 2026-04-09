@@ -31,12 +31,12 @@ const ChartSection = () => {
   const { data: chartSeries, xKey } = useMemo(
     () =>
       buildDashboardPerformanceSeries(
-        state.type,
+        state.preset,
         state.range,
         chartData.performanceTrend,
         performanceEntries,
       ),
-    [state.type, state.range],
+    [state.preset, state.range],
   );
 
   const formatCurrency = (value: number) =>

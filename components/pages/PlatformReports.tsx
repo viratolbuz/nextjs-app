@@ -56,7 +56,8 @@ import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
-import { DateRangePicker } from "@/contexts/DateRangeContext";
+import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import { parse, parseISO } from "date-fns";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -110,6 +111,7 @@ type PlatformSortKey =
   | "share";
 
 const PlatformReports = () => {
+  const { inRange } = useDateRange("reports-platform");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<PlatformSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -139,6 +141,16 @@ const PlatformReports = () => {
       selectedPlatforms.length > 0
         ? platforms.filter((p) => selectedPlatforms.includes(p.name))
         : platforms;
+    list = list.filter((p) => {
+      const related = projects.find((pr) => pr.platforms.includes(p.name));
+      const dateValue = related?.updatedAt || related?.createdAt;
+      if (!dateValue) return true;
+      try {
+        return inRange(parseISO(dateValue));
+      } catch {
+        return true;
+      }
+    });
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       const share = (n: string) =>
@@ -178,24 +190,24 @@ const PlatformReports = () => {
           return 0;
       }
     });
-  }, [selectedPlatforms, sortKey, sortDir]);
+  }, [selectedPlatforms, sortKey, sortDir, inRange]);
 
   const kpis = useMemo(() => {
-    const totalSpend = platforms.reduce(
+    const totalSpend = filteredPlatforms.reduce(
       (a, p) => a + parseFloat(p.spendMTD.replace(/[₹L]/g, "")),
       0,
     );
-    const connected = platforms.filter((p) => p.status === "Connected").length;
-    const totalProjects = platforms.reduce((a, p) => a + p.projects, 0);
+    const connected = filteredPlatforms.filter((p) => p.status === "Connected").length;
+    const totalProjects = filteredPlatforms.reduce((a, p) => a + p.projects, 0);
     const avgRoas =
-      platforms.reduce(
+      filteredPlatforms.reduce(
         (a, p) => a + parseFloat(p.avgROAS.replace("x", "")),
         0,
-      ) / (platforms.length || 1);
+      ) / (filteredPlatforms.length || 1);
     return [
       {
         label: "Avg Spend",
-        value: `₹${(totalSpend / (platforms.length || 1)).toFixed(1)}L`,
+        value: `₹${(totalSpend / (filteredPlatforms.length || 1)).toFixed(1)}L`,
         icon: DollarSign,
       },
       {
@@ -206,7 +218,7 @@ const PlatformReports = () => {
       { label: "Avg ROAS", value: `${avgRoas.toFixed(1)}x`, icon: TrendingUp },
       {
         label: "Connected",
-        value: `${connected}/${platforms.length}`,
+        value: `${connected}/${filteredPlatforms.length}`,
         icon: Globe,
       },
       {
@@ -216,7 +228,16 @@ const PlatformReports = () => {
       },
       { label: "Avg CPA", value: "₹380", icon: Target },
     ];
-  }, []);
+  }, [filteredPlatforms]);
+
+  const visibleMonthIndexes = useMemo(
+    () =>
+      monthLabels
+        .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
+        .filter((x) => inRange(x.d))
+        .map((x) => x.i),
+    [inRange],
+  );
 
   const filteredPlatformNames = filteredPlatforms.map((p) => p.name);
   const filteredPlatformDetails =
@@ -225,7 +246,10 @@ const PlatformReports = () => {
     );
 
   const monthlyAgg = useMemo(() => {
-    return monthLabels.map((label, i) => {
+    return monthLabels
+      .map((label, i) => ({ label, i }))
+      .filter((x) => visibleMonthIndexes.includes(x.i))
+      .map(({ label, i }) => {
       const key = months[i];
       const entry: Record<string, any> = { month: label };
       let total = 0;
@@ -235,8 +259,8 @@ const PlatformReports = () => {
       });
       entry.total = parseFloat(total.toFixed(2));
       return entry;
-    });
-  }, [filteredPlatformDetails]);
+      });
+  }, [filteredPlatformDetails, visibleMonthIndexes]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -292,7 +316,7 @@ const PlatformReports = () => {
             Cross-platform performance comparison
           </p>
         </div>
-        <DateRangePicker className="w-[150px]" />
+        <DateRangePicker scope="reports-platform" className="w-auto" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -468,12 +492,12 @@ const PlatformReports = () => {
                   <th className="text-left py-2 px-3 font-semibold">
                     Platform
                   </th>
-                  {monthLabels.map((m) => (
+                  {visibleMonthIndexes.map((idx) => (
                     <th
-                      key={m}
+                      key={monthLabels[idx]}
                       className="text-right py-2 px-2 font-medium text-xs"
                     >
-                      {m.split(" ")[0]}
+                      {monthLabels[idx].split(" ")[0]}
                     </th>
                   ))}
                   <th className="text-right py-2 px-3 font-semibold">
@@ -490,11 +514,14 @@ const PlatformReports = () => {
                     <td className="py-2 px-3 text-primary font-medium">
                       {item.name}
                     </td>
-                    {months.map((k) => (
+                    {visibleMonthIndexes.map((idx) => {
+                      const k = months[idx];
+                      return (
                       <td key={k} className="text-right py-2 px-2 text-xs">
                         {(item[k] as number).toFixed(2)}
                       </td>
-                    ))}
+                      );
+                    })}
                     <td className="text-right py-2 px-3 font-bold text-primary">
                       {item.total.toFixed(2)}
                     </td>
