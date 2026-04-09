@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { users, chartData, projects } from "@/services/appData.service";
+import { users, chartData, projects, performanceEntries } from "@/services/appData.service";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Eye,
@@ -53,8 +53,16 @@ import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
-import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import {
+  DateRangePicker,
+  useDateRange,
+  createTimeBuckets,
+  getBucketKey,
+  getGranularityFromPreset,
+  parsePerformanceEntryDate,
+} from "@/contexts/DateRangeContext";
 import { parse } from "date-fns";
+import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -117,7 +125,7 @@ type TeamSortKey =
   | "cpa";
 
 const TeamReports = () => {
-  const { inRange } = useDateRange("reports-team");
+  const { inRange, state, filterEntries } = useDateRange("reports-team");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<TeamSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -183,31 +191,37 @@ const TeamReports = () => {
   }, [selectedUsers, sortKey, sortDir]);
 
   const kpis = useMemo(() => {
-    const list = users;
-    const totalSpend = list.reduce((a, u) => {
-      const d = chartData.userMonthlySpend.find((s) => s.name === u.name);
-      return a + (d?.total || 0);
-    }, 0);
+    const ratio = filteredUsers.length / (users.length || 1);
+    const entriesInRange = filterEntries(performanceEntries);
+    const totalSpend =
+      entriesInRange.reduce((sum, e) => sum + e.spend, 0) / 100000 * ratio;
+    const totalRevenue =
+      entriesInRange.reduce((sum, e) => sum + e.revenue, 0) / 100000 * ratio;
+    const totalLeads =
+      entriesInRange.reduce((sum, e) => sum + e.leads, 0) * ratio;
+    const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+    const avgCpa = totalLeads > 0 ? (totalSpend * 100000) / totalLeads : 0;
+
     return [
       {
         label: "Total Spend",
-        value: `₹${totalSpend.toFixed(1)}L`,
+        value: formatAmountFromLakhs(totalSpend),
         icon: DollarSign,
       },
       {
         label: "Revenue",
-        value: `₹${(totalSpend * 3.8).toFixed(1)}L`,
+        value: formatAmountFromLakhs(totalRevenue),
         icon: TrendingUp,
       },
-      { label: "Avg ROAS", value: "3.8x", icon: Target },
+      { label: "Avg ROAS", value: `${avgRoas.toFixed(2)}x`, icon: Target },
       {
         label: "Total Leads",
-        value: Math.round((totalSpend * 1000) / 380).toLocaleString(),
+        value: Math.round(totalLeads).toLocaleString("en-IN"),
         icon: BarChart3,
       },
-      { label: "Avg CPA", value: "₹380", icon: DollarSign },
+      { label: "Avg CPA", value: formatAmountFromRupees(Math.round(avgCpa), 0), icon: DollarSign },
     ];
-  }, []);
+  }, [filterEntries, filteredUsers.length]);
 
   const filteredUserNames = filteredUsers.map((u) => u.name);
   const filteredMonthlySpend = chartData.userMonthlySpend.filter((u) =>
@@ -224,28 +238,39 @@ const TeamReports = () => {
   );
 
   const monthlyAgg = useMemo(() => {
-    return monthLabels
-      .map((label, i) => ({ label, i }))
-      .filter((x) => visibleMonthIndexes.includes(x.i))
-      .map(({ label, i }) => {
-      const key = months[i];
-      let totalSpend = 0;
-      filteredMonthlySpend.forEach((u) => {
-        totalSpend += u[key] as number;
-      });
-      const perf = chartData.performanceTrend[i];
-      const ratio =
-        filteredMonthlySpend.length / (chartData.userMonthlySpend.length || 1);
-      return {
-        month: label,
-        spend: parseFloat(totalSpend.toFixed(2)),
-        revenue: parseFloat((perf.revenue * ratio).toFixed(2)),
-        leads: Math.round(perf.leads * ratio),
-        roas: perf.roas,
-        cpa: perf.cpa,
-      };
-      });
-  }, [filteredMonthlySpend, visibleMonthIndexes]);
+    const granularity = getGranularityFromPreset(state.preset);
+    const buckets = createTimeBuckets(granularity, state.range);
+    const ratio = filteredMonthlySpend.length / (chartData.userMonthlySpend.length || 1);
+    const seeded = buckets.map((bucket) => ({
+      period: bucket.label,
+      spend: 0,
+      revenue: 0,
+      leads: 0,
+    }));
+    const index = new Map(buckets.map((bucket, idx) => [bucket.key, idx]));
+
+    filterEntries(performanceEntries).forEach((entry) => {
+      const parsed = parsePerformanceEntryDate(entry.date);
+      if (!parsed) return;
+      const key = getBucketKey(parsed, granularity);
+      const idx = index.get(key);
+      if (idx === undefined) return;
+
+      const divisor = granularity === "hourly" ? 24 : 1;
+      seeded[idx].spend += (entry.spend / 100000) * ratio / divisor;
+      seeded[idx].revenue += (entry.revenue / 100000) * ratio / divisor;
+      seeded[idx].leads += (entry.leads * ratio) / divisor;
+    });
+
+    return seeded.map((row) => {
+      const spend = Number(row.spend.toFixed(2));
+      const revenue = Number(row.revenue.toFixed(2));
+      const leads = Math.round(row.leads);
+      const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+      const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
+      return { period: row.period, spend, revenue, leads, roas, cpa };
+    });
+  }, [state.preset, state.range, filteredMonthlySpend.length, filterEntries]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -273,7 +298,7 @@ const TeamReports = () => {
     borderRadius: 12,
     boxShadow: "0 8px 32px hsl(var(--foreground) / 0.1)",
   };
-  const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}L`;
+  const formatCurrency = (val: number) => formatAmountFromLakhs(val);
 
   const proxyUserProjects = useMemo(() => {
     if (!proxyView) return [];
@@ -373,9 +398,7 @@ const TeamReports = () => {
                       yAxisId="left"
                       tick={{ fontSize: 11 }}
                       stroke="hsl(var(--muted-foreground))"
-                      tickFormatter={(v: number) =>
-                        `₹${(v / 100000).toFixed(0)}L`
-                      }
+                      tickFormatter={(v: number) => formatAmountFromRupees(Number(v), 0)}
                     />
                     <YAxis
                       yAxisId="right"
@@ -474,7 +497,7 @@ const TeamReports = () => {
                           {p.revenue}
                         </TableCell>
                         <TableCell className="text-right">
-                          {p.leads.toLocaleString()}
+                          {p.leads.toLocaleString("en-IN")}
                         </TableCell>
                         <TableCell className="text-right">{p.roas}</TableCell>
                         <TableCell className="text-right">{p.cpl}</TableCell>
@@ -644,7 +667,7 @@ const TeamReports = () => {
                   stroke="hsl(var(--border))"
                 />
                 <XAxis
-                  dataKey="month"
+                  dataKey="period"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
                 />
@@ -652,7 +675,7 @@ const TeamReports = () => {
                   yAxisId="left"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => `₹${v}L`}
+                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
                 />
                 <YAxis
                   yAxisId="right"
@@ -736,14 +759,15 @@ const TeamReports = () => {
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-6 overflow-x-auto">
+          <div className="mt-6">
             <div className="w-full flex justify-center">
             <span className="font-bold pb-1 mb-6 mx-2">Spend Data</span>
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-center">
-                  <th className="text-left py-2 px-3 font-semibold">
+                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
                     Team Name
                   </th>
                   {visibleMonthIndexes.map((idx) => (
@@ -754,7 +778,7 @@ const TeamReports = () => {
                       {monthLabels[idx]}
                     </th>
                   ))}
-                  <th className="text-center py-2 px-3 font-semibold">
+                  <th className="text-center py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
                     Total (₹L)
                   </th>
                 </tr>
@@ -765,7 +789,7 @@ const TeamReports = () => {
                     key={item.name}
                     className="border-b border-border/50 hover:bg-muted/30"
                   >
-                    <td className="py-2 px-3 text-primary font-medium">
+                    <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
                       {item.name}
                     </td>
                     {visibleMonthIndexes.map((idx) => {
@@ -776,13 +800,14 @@ const TeamReports = () => {
                       </td>
                       );
                     })}
-                    <td className="text-center py-2 px-3 font-bold text-primary">
+                    <td className="text-center py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
                       {item.total.toFixed(2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -887,10 +912,10 @@ const TeamReports = () => {
                       </TableCell>
                       <TableCell>{u.projects}</TableCell>
                       <TableCell className="font-semibold">
-                        ₹{spend.toFixed(1)}L
+                        {formatAmountFromLakhs(spend)}
                       </TableCell>
-                      <TableCell>₹{revenue.toFixed(1)}L</TableCell>
-                      <TableCell>{leads.toLocaleString()}</TableCell>
+                      <TableCell>{formatAmountFromLakhs(revenue)}</TableCell>
+                      <TableCell>{leads.toLocaleString("en-IN")}</TableCell>
                       <TableCell className="font-semibold">3.8x</TableCell>
                       <TableCell>₹380</TableCell>
                       <TableCell>

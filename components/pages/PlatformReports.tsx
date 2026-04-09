@@ -23,6 +23,7 @@ import {
   chartData,
   platformChartData,
   projects,
+  performanceEntries,
 } from "@/services/appData.service";
 import {
   Download,
@@ -32,7 +33,6 @@ import {
   TrendingUp,
   Target,
   Layers,
-  BarChart3,
 } from "lucide-react";
 import {
   BarChart,
@@ -51,13 +51,21 @@ import {
   Legend,
 } from "recharts";
 import ReportFilters from "@/components/shared/ReportFilters";
-import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
+// PremiumKpiCard intentionally not used for Platform KPI cards (uses existing Card layout)
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
-import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import {
+  DateRangePicker,
+  useDateRange,
+  createTimeBuckets,
+  getBucketKey,
+  getGranularityFromPreset,
+  parsePerformanceEntryDate,
+} from "@/contexts/DateRangeContext";
 import { parse, parseISO } from "date-fns";
+import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -70,6 +78,40 @@ const SOFT_COLORS = [
   "hsl(var(--chart-2-soft))",
   "hsl(var(--chart-3-soft))",
   "hsl(var(--chart-4-soft))",
+];
+const KPI_ACCENTS = [
+  {
+    gradient:
+      "from-blue-500/8 to-blue-500/2 dark:from-blue-500/15 dark:to-blue-500/5",
+    iconBg: "bg-blue-100 dark:bg-blue-500/20",
+    iconText: "text-blue-600 dark:text-blue-400",
+    bar: "from-blue-400 to-blue-600",
+    highlight: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    gradient:
+      "from-emerald-500/8 to-emerald-500/2 dark:from-emerald-500/15 dark:to-emerald-500/5",
+    iconBg: "bg-emerald-100 dark:bg-emerald-500/20",
+    iconText: "text-emerald-600 dark:text-emerald-400",
+    bar: "from-emerald-400 to-emerald-600",
+    highlight: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    gradient:
+      "from-purple-500/8 to-purple-500/2 dark:from-purple-500/15 dark:to-purple-500/5",
+    iconBg: "bg-purple-100 dark:bg-purple-500/20",
+    iconText: "text-purple-600 dark:text-purple-400",
+    bar: "from-purple-400 to-purple-600",
+    highlight: "text-purple-600 dark:text-purple-400",
+  },
+  {
+    gradient:
+      "from-orange-500/8 to-orange-500/2 dark:from-orange-500/15 dark:to-orange-500/5",
+    iconBg: "bg-orange-100 dark:bg-orange-500/20",
+    iconText: "text-orange-600 dark:text-orange-400",
+    bar: "from-orange-400 to-orange-600",
+    highlight: "text-orange-600 dark:text-orange-400",
+  },
 ];
 
 const months = [
@@ -111,7 +153,7 @@ type PlatformSortKey =
   | "share";
 
 const PlatformReports = () => {
-  const { inRange } = useDateRange("reports-platform");
+  const { inRange, filterEntries, state } = useDateRange("reports-platform");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<PlatformSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -141,16 +183,6 @@ const PlatformReports = () => {
       selectedPlatforms.length > 0
         ? platforms.filter((p) => selectedPlatforms.includes(p.name))
         : platforms;
-    list = list.filter((p) => {
-      const related = projects.find((pr) => pr.platforms.includes(p.name));
-      const dateValue = related?.updatedAt || related?.createdAt;
-      if (!dateValue) return true;
-      try {
-        return inRange(parseISO(dateValue));
-      } catch {
-        return true;
-      }
-    });
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       const share = (n: string) =>
@@ -190,45 +222,46 @@ const PlatformReports = () => {
           return 0;
       }
     });
-  }, [selectedPlatforms, sortKey, sortDir, inRange]);
+  }, [selectedPlatforms, sortKey, sortDir]);
 
-  const kpis = useMemo(() => {
-    const totalSpend = filteredPlatforms.reduce(
-      (a, p) => a + parseFloat(p.spendMTD.replace(/[₹L]/g, "")),
-      0,
-    );
-    const connected = filteredPlatforms.filter((p) => p.status === "Connected").length;
-    const totalProjects = filteredPlatforms.reduce((a, p) => a + p.projects, 0);
-    const avgRoas =
-      filteredPlatforms.reduce(
-        (a, p) => a + parseFloat(p.avgROAS.replace("x", "")),
-        0,
-      ) / (filteredPlatforms.length || 1);
-    return [
-      {
-        label: "Avg Spend",
-        value: `₹${(totalSpend / (filteredPlatforms.length || 1)).toFixed(1)}L`,
-        icon: DollarSign,
-      },
-      {
-        label: "Total Spend",
-        value: `₹${totalSpend.toFixed(1)}L`,
-        icon: DollarSign,
-      },
-      { label: "Avg ROAS", value: `${avgRoas.toFixed(1)}x`, icon: TrendingUp },
-      {
-        label: "Connected",
-        value: `${connected}/${filteredPlatforms.length}`,
-        icon: Globe,
-      },
-      {
-        label: "Total Projects",
-        value: totalProjects.toString(),
-        icon: Layers,
-      },
-      { label: "Avg CPA", value: "₹380", icon: Target },
-    ];
-  }, [filteredPlatforms]);
+  const platformKpiCards = useMemo(() => {
+    const entriesInRange = filterEntries(performanceEntries);
+    const byPlatform = new Map<
+      string,
+      { spend: number; leads: number; revenue: number }
+    >();
+
+    entriesInRange.forEach((e) => {
+      const key = e.platform;
+      const cur = byPlatform.get(key) ?? { spend: 0, leads: 0, revenue: 0 };
+      cur.spend += e.spend;
+      cur.leads += e.leads;
+      cur.revenue += e.revenue;
+      byPlatform.set(key, cur);
+    });
+
+    const formatL = (amount: number) => formatAmountFromRupees(amount);
+
+    return filteredPlatforms.map((p) => {
+      const agg = byPlatform.get(p.name) ?? { spend: 0, leads: 0, revenue: 0 };
+      const spendL = formatL(agg.spend);
+      const leads = agg.leads;
+      const revenueL = formatL(agg.revenue);
+      const roas = agg.spend > 0 ? (agg.revenue / agg.spend).toFixed(2) : "0.00";
+      const cpl = agg.leads > 0 ? Math.round(agg.spend / agg.leads) : 0;
+
+      return {
+        id: p.id,
+        name: p.name,
+        icon: p.icon,
+        spendL,
+        leads,
+        revenueL,
+        roas: `${Number(roas).toFixed(2)}x`,
+        cpl: cpl > 0 ? formatAmountFromRupees(cpl, 0) : formatAmountFromRupees(0, 0),
+      };
+    });
+  }, [filteredPlatforms, filterEntries]);
 
   const visibleMonthIndexes = useMemo(
     () =>
@@ -246,21 +279,42 @@ const PlatformReports = () => {
     );
 
   const monthlyAgg = useMemo(() => {
-    return monthLabels
-      .map((label, i) => ({ label, i }))
-      .filter((x) => visibleMonthIndexes.includes(x.i))
-      .map(({ label, i }) => {
-      const key = months[i];
-      const entry: Record<string, any> = { month: label };
-      let total = 0;
-      filteredPlatformDetails.forEach((p) => {
-        entry[p.name] = p[key];
-        total += p[key] as number;
-      });
-      entry.total = parseFloat(total.toFixed(2));
-      return entry;
-      });
-  }, [filteredPlatformDetails, visibleMonthIndexes]);
+    const granularity = getGranularityFromPreset(state.preset);
+    const buckets = createTimeBuckets(granularity, state.range);
+    const rows = buckets.map((bucket) => ({
+      period: bucket.label,
+      total: 0,
+      ...Object.fromEntries(filteredPlatformDetails.map((p) => [p.name, 0])),
+    }));
+    const index = new Map(buckets.map((bucket, idx) => [bucket.key, idx]));
+
+    filterEntries(performanceEntries).forEach((entry) => {
+      const parsed = parsePerformanceEntryDate(entry.date);
+      if (!parsed) return;
+      const bucketKey = getBucketKey(parsed, granularity);
+      const rowIdx = index.get(bucketKey);
+      if (rowIdx === undefined) return;
+      const platformName = entry.platform;
+      if (platformName in rows[rowIdx]) {
+        const valueInLakhs =
+          granularity === "hourly" ? entry.spend / 100000 / 24 : entry.spend / 100000;
+        const current = Number((rows[rowIdx] as any)[platformName] ?? 0);
+        (rows[rowIdx] as any)[platformName] = current + valueInLakhs;
+        rows[rowIdx].total += valueInLakhs;
+      }
+    });
+
+    return rows.map((row) => ({
+      ...row,
+      total: Number(row.total.toFixed(2)),
+      ...Object.fromEntries(
+        filteredPlatformDetails.map((p) => [
+          p.name,
+          Number((Number((row as any)[p.name] ?? 0)).toFixed(2)),
+        ]),
+      ),
+    }));
+  }, [state.preset, state.range, filteredPlatformDetails, filterEntries]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -288,7 +342,7 @@ const PlatformReports = () => {
     borderRadius: 12,
     boxShadow: "0 8px 32px hsl(var(--foreground) / 0.1)",
   };
-  const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}L`;
+  const formatCurrency = (val: number) => formatAmountFromLakhs(val);
 
   const budgetData = filteredPlatforms.map((p) => ({
     name: p.name.replace(" Ads", ""),
@@ -319,24 +373,60 @@ const PlatformReports = () => {
         <DateRangePicker scope="reports-platform" className="w-auto" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {kpis.map((k, i) => (
-          <PremiumKpiCard
-            key={k.label}
-            card={{
-              ...k,
-              value: k.value,
-              accent: (
-                ["blue", "orange", "emerald", "cyan", "purple", "pink"] as const
-              )[i % 6],
-            }}
-            index={i}
-          />
-        ))}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {platformKpiCards.map((c, i) => {
+          const accent = KPI_ACCENTS[i % KPI_ACCENTS.length]!;
+          return (
+          <Card
+            key={c.id}
+            className={`relative overflow-hidden border-border/50 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 bg-gradient-to-br ${accent.gradient}`}
+          >
+            <div
+              className={`absolute right-0 top-2 bottom-2 w-1 rounded-l-full bg-gradient-to-b opacity-60 ${accent.bar}`}
+            />
+            <CardContent className="p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${accent.iconBg} ${accent.iconText}`}
+                >
+                  {c.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{c.name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-2xl font-display font-bold">{c.spendL}</p>
+                <p className="text-[13px] text-muted-foreground">Spend MTD</p>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-[13px] text-muted-foreground">Leads</p>
+                  <p className="font-bold">{c.leads.toLocaleString("en-IN")}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] text-muted-foreground">CPL</p>
+                  <p className={`font-bold ${accent.highlight}`}>{c.cpl}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] text-muted-foreground">Revenue</p>
+                  <p className="font-bold">{c.revenueL}</p>
+                </div>
+                <div>
+                  <p className="text-[13px] text-muted-foreground">ROAS</p>
+                  <p className={`font-bold ${accent.highlight}`}>{c.roas}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+        })}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* <Card>
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
           <CardContent className="p-6">
             <h3 className="font-semibold mb-4">Budget Allocation vs Actual</h3>
             <ResponsiveContainer width="100%" height={260}>
@@ -370,7 +460,7 @@ const PlatformReports = () => {
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
-        </Card> */}
+        </Card>
         <Card>
           <CardContent className="p-6">
             <h3 className="font-semibold mb-4">Spend Share</h3>
@@ -393,7 +483,7 @@ const PlatformReports = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <Card className="border-border/50">
         <CardContent className="p-6">
@@ -424,7 +514,7 @@ const PlatformReports = () => {
                   stroke="hsl(var(--border))"
                 />
                 <XAxis
-                  dataKey="month"
+                  dataKey="period"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
                 />
@@ -432,14 +522,14 @@ const PlatformReports = () => {
                   yAxisId="left"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => `₹${v}L`}
+                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
                 />
                 <YAxis
                   yAxisId="right"
                   orientation="right"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => `₹${v}L`}
+                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
@@ -485,11 +575,12 @@ const PlatformReports = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="mt-6">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-semibold">
+                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
                     Platform
                   </th>
                   {visibleMonthIndexes.map((idx) => (
@@ -500,7 +591,7 @@ const PlatformReports = () => {
                       {monthLabels[idx].split(" ")[0]}
                     </th>
                   ))}
-                  <th className="text-right py-2 px-3 font-semibold">
+                  <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
                     Total (₹L)
                   </th>
                 </tr>
@@ -511,7 +602,7 @@ const PlatformReports = () => {
                     key={item.name}
                     className="border-b border-border/50 hover:bg-muted/30"
                   >
-                    <td className="py-2 px-3 text-primary font-medium">
+                    <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
                       {item.name}
                     </td>
                     {visibleMonthIndexes.map((idx) => {
@@ -522,13 +613,14 @@ const PlatformReports = () => {
                       </td>
                       );
                     })}
-                    <td className="text-right py-2 px-3 font-bold text-primary">
+                    <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
                       {item.total.toFixed(2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>

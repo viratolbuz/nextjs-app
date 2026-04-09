@@ -1,8 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useMemo, useState } from "react";
-import { format, isAfter, isBefore, parse, startOfDay, endOfDay, subDays } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import {
+  addDays,
+  addHours,
+  addMonths,
+  endOfDay,
+  format,
+  isAfter,
+  isBefore,
+  parse,
+  startOfDay,
+  startOfMonth,
+  subDays,
+} from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -253,8 +264,8 @@ export function DateRangePicker({
 
           <div className="p-3">
             <div className="flex flex-col gap-3 w-full">
-              <div className="space-y-2">
-                <div className="w-auto">
+              <div className="space-y-2 flex gap-2">
+                <div className="w-auto mt-0">
                   <label className="text-xs text-muted-foreground">Start date</label>
                   <Input
                     value={parsedFrom}
@@ -262,7 +273,7 @@ export function DateRangePicker({
                     onChange={(e) => updateDateByInput("from", e.target.value)}
                   />
                 </div>
-                <div className="w-auto">
+                <div className="w-auto !mt-0">
                   <label className="text-xs text-muted-foreground">End date</label>
                   <Input
                     value={parsedTo}
@@ -270,9 +281,9 @@ export function DateRangePicker({
                     onChange={(e) => updateDateByInput("to", e.target.value)}
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
+                {/* <p className="text-xs text-muted-foreground">
                   {format(state.range.from, "dd MMM yyyy")} - {format(state.range.to, "dd MMM yyyy")}
-                </p>
+                </p> */}
               </div>
 
               <div className="border rounded-md p-2">
@@ -329,14 +340,149 @@ export function DateRangePicker({
 }
 
 export function buildDashboardPerformanceSeries(
-  _type: string,
+  type: DatePreset,
   range: DateRangeValue,
-  trend: Array<{ month: string; spend: number; revenue: number; leads: number; roas: number; cpa?: number }>,
-  _entries: PerformanceEntry[],
+  trend: Array<{
+    month: string;
+    spend: number;
+    revenue: number;
+    leads: number;
+    roas: number;
+    cpa?: number;
+  }>,
+  entries: PerformanceEntry[],
 ) {
-  const data = trend.filter((item) => {
+  const granularity = getGranularityFromPreset(type);
+  const buckets = createTimeBuckets(granularity, range);
+  const seeded = buckets.map((bucket) => ({
+    key: bucket.key,
+    spend: 0,
+    revenue: 0,
+    leads: 0,
+  }));
+  const bucketIndex = new Map(seeded.map((row, idx) => [row.key, idx]));
+
+  entries.forEach((entry) => {
+    const parsed = parsePerformanceEntryDate(entry.date);
+    if (!parsed) return;
+    if (isBefore(parsed, startOfDay(range.from)) || isAfter(parsed, endOfDay(range.to))) {
+      return;
+    }
+
+    const key = getBucketKey(parsed, granularity);
+    const idx = bucketIndex.get(key);
+    if (idx === undefined) return;
+
+    // Hourly points are derived from day-level dummy data to keep the chart alive.
+    const divisor = granularity === "hourly" ? 24 : 1;
+    seeded[idx].spend += entry.spend / divisor;
+    seeded[idx].revenue += entry.revenue / divisor;
+    seeded[idx].leads += entry.leads / divisor;
+  });
+
+  const data = seeded.map((row, idx) => {
+    const spend = Number(row.spend.toFixed(2));
+    const revenue = Number(row.revenue.toFixed(2));
+    const leads = Math.round(row.leads);
+    const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+    const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
+    return {
+      period: buckets[idx].label,
+      spend,
+      revenue,
+      leads,
+      roas,
+      cpa,
+    };
+  });
+
+  if (data.some((d) => d.spend || d.revenue || d.leads)) {
+    return { data, xKey: "period" as const, granularity };
+  }
+
+  const fallback = trend.filter((item) => {
     const parsed = parse(item.month, "MMM yyyy", new Date());
     return !isBefore(parsed, startOfDay(range.from)) && !isAfter(parsed, endOfDay(range.to));
   });
-  return { data: data.length > 0 ? data : trend, xKey: "month" as const };
+
+  return {
+    data: fallback.length > 0 ? fallback : trend,
+    xKey: "month" as const,
+    granularity: "monthly" as const,
+  };
 }
+
+export type DateSeriesGranularity = "hourly" | "daily" | "monthly";
+
+export const getGranularityFromPreset = (preset: DatePreset): DateSeriesGranularity => {
+  if (preset === "today" || preset === "yesterday") return "hourly";
+  if (preset === "last7" || preset === "last14" || preset === "lastMonth") return "daily";
+  return "monthly";
+};
+
+export const parsePerformanceEntryDate = (dateValue: string): Date | null => {
+  try {
+    const withCurrentYear = parse(
+      `${dateValue} ${new Date().getFullYear()}`,
+      "dd MMM yyyy",
+      new Date(),
+    );
+    if (!Number.isNaN(withCurrentYear.getTime())) return withCurrentYear;
+    const with2026 = parse(`${dateValue} 2026`, "dd MMM yyyy", new Date());
+    return Number.isNaN(with2026.getTime()) ? null : with2026;
+  } catch {
+    return null;
+  }
+};
+
+export const getBucketKey = (date: Date, granularity: DateSeriesGranularity): string => {
+  if (granularity === "hourly") return format(date, "yyyy-MM-dd HH");
+  if (granularity === "daily") return format(date, "yyyy-MM-dd");
+  return format(date, "yyyy-MM");
+};
+
+export const createTimeBuckets = (
+  granularity: DateSeriesGranularity,
+  range: DateRangeValue,
+): Array<{ key: string; label: string; start: Date }> => {
+  const from = startOfDay(range.from);
+  const to = endOfDay(range.to);
+  const buckets: Array<{ key: string; label: string; start: Date }> = [];
+
+  if (granularity === "hourly") {
+    const day = startOfDay(from);
+    for (let hour = 0; hour < 24; hour += 1) {
+      const point = addHours(day, hour);
+      buckets.push({
+        start: point,
+        key: getBucketKey(point, "hourly"),
+        label: format(point, "HH:mm"),
+      });
+    }
+    return buckets;
+  }
+
+  if (granularity === "daily") {
+    let cursor = from;
+    while (!isAfter(cursor, to)) {
+      buckets.push({
+        start: cursor,
+        key: getBucketKey(cursor, "daily"),
+        label: format(cursor, "dd MMM"),
+      });
+      cursor = addDays(cursor, 1);
+    }
+    return buckets;
+  }
+
+  let cursor = startOfMonth(from);
+  while (!isAfter(cursor, to)) {
+    buckets.push({
+      start: cursor,
+      key: getBucketKey(cursor, "monthly"),
+      label: format(cursor, "MMM yyyy"),
+    });
+    cursor = addMonths(cursor, 1);
+  }
+  return buckets;
+};

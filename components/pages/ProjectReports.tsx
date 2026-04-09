@@ -42,9 +42,15 @@ import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
-import ScrollableChartTooltip from "@/components/dashboard/ScrollableChartTooltip";
-import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
-import { parse, parseISO } from "date-fns";
+import {
+  DateRangePicker,
+  useDateRange,
+  createTimeBuckets,
+  getBucketKey,
+  getGranularityFromPreset,
+} from "@/contexts/DateRangeContext";
+import { endOfMonth, parse, parseISO, startOfMonth } from "date-fns";
+import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const EXTENDED_HUES = [
   22, 177, 45, 192, 350, 280, 30, 160, 120, 250, 10, 200, 60, 310, 80, 140,
@@ -98,8 +104,9 @@ type ProjectSortKey =
 
 const ProjectReports = () => {
   const router = useRouter();
-  const { inRange } = useDateRange("reports-project");
+  const { inRange, state } = useDateRange("reports-project");
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<ProjectSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [tablePage, setTablePage] = useState(1);
@@ -139,6 +146,9 @@ const ProjectReports = () => {
         return true;
       }
     });
+    if (selectedStatuses.length > 0) {
+      list = list.filter((p) => selectedStatuses.includes(p.status));
+    }
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -176,52 +186,67 @@ const ProjectReports = () => {
           return 0;
       }
     });
-  }, [selectedProjects, sortKey, sortDir, inRange]);
+  }, [selectedProjects, selectedStatuses, sortKey, sortDir, inRange]);
 
   const kpis = useMemo(() => {
-    const totalSpend = filteredProjects.reduce(
-      (a, p) => a + parseFloat(p.spend.replace(/[₹L]/g, "")),
-      0,
+    const selectedNames = new Set(filteredProjects.map((p) => p.name));
+    const monthIndexes = monthLabels
+      .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
+      .filter((x) => {
+        const monthStart = startOfMonth(x.d);
+        const monthEnd = endOfMonth(x.d);
+        return monthEnd >= state.range.from && monthStart <= state.range.to;
+      })
+      .map((x) => x.i);
+
+    const detailRows = projectChartData.projectMonthlyDetails.filter((d) =>
+      selectedNames.has(d.name),
     );
-    const totalRevenue = filteredProjects.reduce(
-      (a, p) => a + parseFloat(p.revenue.replace(/[₹L]/g, "")),
-      0,
-    );
-    const totalLeads = filteredProjects.reduce((a, p) => a + p.leads, 0);
-    const avgRoas =
-      filteredProjects.reduce((a, p) => a + parseFloat(p.roas), 0) /
-      (filteredProjects.length || 1);
-    const avgCpa =
-      filteredProjects.reduce((a, p) => a + parseFloat(p.cpl.replace("₹", "")), 0) /
-      (filteredProjects.length || 1);
+
+    let totalSpend = 0;
+    detailRows.forEach((detail) => {
+      monthIndexes.forEach((idx) => {
+        totalSpend += Number(detail[months[idx]] ?? 0);
+      });
+    });
+
+    const totalRevenue = totalSpend * 3.8;
+    const totalLeads = Math.round((totalSpend * 100000) / 380);
+    const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+    const avgCpa = totalLeads > 0 ? (totalSpend * 100000) / totalLeads : 0;
+
     return [
       {
         label: "Total Spend",
-        value: `₹${totalSpend.toFixed(1)}L`,
+        value: formatAmountFromLakhs(totalSpend),
         icon: DollarSign,
       },
       {
         label: "Revenue",
-        value: `₹${totalRevenue.toFixed(1)}L`,
+        value: formatAmountFromLakhs(totalRevenue),
         icon: TrendingUp,
       },
       { label: "Avg ROAS", value: `${avgRoas.toFixed(2)}x`, icon: Target },
-      { label: "Avg CPA", value: `₹${Math.round(avgCpa)}`, icon: DollarSign },
+      { label: "Avg CPA", value: formatAmountFromRupees(Math.round(avgCpa), 0), icon: DollarSign },
       {
         label: "Total Leads",
-        value: totalLeads.toLocaleString(),
+        value: totalLeads.toLocaleString("en-IN"),
         icon: Layers,
       },
     ];
-  }, [filteredProjects]);
+  }, [filteredProjects, state.range.from, state.range.to]);
 
   const visibleMonthIndexes = useMemo(
     () =>
       monthLabels
         .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
-        .filter((x) => inRange(x.d))
+        .filter((x) => {
+          const monthStart = startOfMonth(x.d);
+          const monthEnd = endOfMonth(x.d);
+          return monthEnd >= state.range.from && monthStart <= state.range.to;
+        })
         .map((x) => x.i),
-    [inRange],
+    [state.range.from, state.range.to],
   );
 
   const filteredProjectNames = filteredProjects.map((p) => p.name);
@@ -229,29 +254,56 @@ const ProjectReports = () => {
     (p) => filteredProjectNames.includes(p.name),
   );
 
-  const monthlyAgg = useMemo(() => {
-    return monthLabels
-      .map((label, i) => ({ label, i }))
-      .filter((x) => visibleMonthIndexes.includes(x.i))
-      .map(({ label, i }) => {
-      const key = months[i];
-      let totalSpend = 0;
-      filteredProjectDetails.forEach((p) => {
-        totalSpend += p[key] as number;
-      });
-      const perf = projectChartData.performanceTrend[i];
-      const ratio =
-        filteredProjectDetails.length /
-        (projectChartData.projectMonthlyDetails.length || 1);
-      return {
-        month: label,
-        spend: parseFloat(totalSpend.toFixed(2)),
-        revenue: parseFloat((perf.revenue * ratio).toFixed(2)),
-        leads: Math.round(perf.leads * ratio),
-        roas: perf.roas,
+  const monthTablePageSize = 10;
+  const [monthTablePage, setMonthTablePage] = useState(1);
+  const monthTableTotalPages = Math.max(
+    1,
+    Math.ceil(filteredProjectDetails.length / monthTablePageSize),
+  );
+  const monthTableRows = filteredProjectDetails.slice(
+    (monthTablePage - 1) * monthTablePageSize,
+    monthTablePage * monthTablePageSize,
+  );
+
+  const statusMonthlyAgg = useMemo(() => {
+    const granularity = getGranularityFromPreset(state.preset);
+    const buckets = createTimeBuckets(granularity, state.range);
+    const seeded = buckets.map((bucket) => ({
+      period: bucket.label,
+      Active: 0,
+      Inactive: 0,
+      Hold: 0,
+    }));
+    const index = new Map(buckets.map((bucket, idx) => [bucket.key, idx]));
+
+    filteredProjects.forEach((project) => {
+      let baseDate: Date;
+      try {
+        baseDate = parseISO(project.updatedAt || project.createdAt);
+      } catch {
+        return;
+      }
+      const key = getBucketKey(baseDate, granularity);
+      const idx = index.get(key);
+      if (idx === undefined) return;
+      if (project.status === "Active") seeded[idx].Active += 1;
+      if (project.status === "Inactive") seeded[idx].Inactive += 1;
+      if (project.status === "Hold") seeded[idx].Hold += 1;
+    });
+
+    // Keep chart readable when all projects share a single activity date.
+    const hasAnyPoint = seeded.some((row) => row.Active || row.Inactive || row.Hold);
+    if (!hasAnyPoint) {
+      const fallback = {
+        Active: filteredProjects.filter((p) => p.status === "Active").length,
+        Inactive: filteredProjects.filter((p) => p.status === "Inactive").length,
+        Hold: filteredProjects.filter((p) => p.status === "Hold").length,
       };
-      });
-  }, [filteredProjectDetails, visibleMonthIndexes]);
+      return seeded.map((row) => ({ ...row, ...fallback }));
+    }
+
+    return seeded;
+  }, [state.preset, state.range, filteredProjects]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -279,8 +331,6 @@ const ProjectReports = () => {
     borderRadius: 12,
     boxShadow: "0 8px 32px hsl(var(--foreground) / 0.1)",
   };
-  const formatCurrency = (val: number) => `₹${val.toLocaleString("en-IN")}L`;
-
   const topProjectsChart = filteredProjects.slice(0, 6).map((p) => ({
     name: p.name.length > 12 ? p.name.slice(0, 12) + "…" : p.name,
     spend: parseFloat(p.spend.replace(/[₹L]/g, "")),
@@ -369,22 +419,39 @@ const ProjectReports = () => {
                 onSelectAll={() => setSelectedProjects([])}
                 selectLabel="Projects"
               />
+              <ReportFilters
+                items={[
+                  { id: "Active", label: "Active" },
+                  { id: "Inactive", label: "Inactive" },
+                  { id: "Hold", label: "Hold" },
+                ]}
+                selectedItems={selectedStatuses}
+                onToggleItem={(id) =>
+                  setSelectedStatuses((prev) =>
+                    prev.includes(id)
+                      ? prev.filter((x) => x !== id)
+                      : [...prev, id],
+                  )
+                }
+                onSelectAll={() => setSelectedStatuses([])}
+                selectLabel="Status"
+              />
             </div>
           </div>
 
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
-              Performance Metrics (Spend, Revenue, Leads, ROAS)
+              Project Status Overview (Active, Inactive, Hold)
             </h4>
             <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={monthlyAgg}>
+              <ComposedChart data={statusMonthlyAgg}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
                 />
                 <XAxis
-                  dataKey="month"
+                  dataKey="period"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
                 />
@@ -392,7 +459,6 @@ const ProjectReports = () => {
                   yAxisId="left"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => `₹${v}L`}
                 />
                 <YAxis
                   yAxisId="right"
@@ -401,18 +467,7 @@ const ProjectReports = () => {
                   stroke="hsl(var(--muted-foreground))"
                 />
                 <Tooltip
-                  content={
-                    <ScrollableChartTooltip
-                      valueFormatter={(val, name) => {
-                        if (name.includes("Spend") || name.includes("Revenue"))
-                          return formatCurrency(val);
-                        if (name.includes("Leads"))
-                          return val.toLocaleString("en-IN");
-                        return String(val);
-                      }}
-                    />
-                  }
-                  wrapperStyle={{ zIndex: 50 }}
+                  contentStyle={tooltipStyle}
                 />
                 <Legend
                   content={
@@ -425,52 +480,46 @@ const ProjectReports = () => {
                 <Line
                   yAxisId="left"
                   type="monotone"
-                  dataKey="spend"
+                  dataKey="Active"
                   stroke="hsl(var(--metric-spend))"
                   strokeWidth={2}
                   dot={{ r: 3 }}
-                  name="Spend (₹)"
-                  hide={hiddenSeries.has("Spend (₹)")}
+                  name="Active"
+                  hide={hiddenSeries.has("Active")}
                 />
                 <Area
                   yAxisId="left"
                   type="monotone"
-                  dataKey="revenue"
+                  dataKey="Hold"
                   stroke="hsl(var(--metric-revenue))"
                   fill="hsl(var(--metric-revenue) / 0.15)"
                   strokeWidth={2}
-                  name="Revenue (₹)"
-                  hide={hiddenSeries.has("Revenue (₹)")}
+                  name="Hold"
+                  hide={hiddenSeries.has("Hold")}
                 />
                 <Line
                   yAxisId="right"
                   type="monotone"
-                  dataKey="leads"
+                  dataKey="Inactive"
                   stroke="hsl(var(--metric-leads))"
                   strokeWidth={2}
                   dot={{ r: 3 }}
-                  name="Leads"
-                  hide={hiddenSeries.has("Leads")}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="roas"
-                  stroke="hsl(var(--metric-roas))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  name="ROAS"
-                  hide={hiddenSeries.has("ROAS")}
+                  name="Inactive"
+                  hide={hiddenSeries.has("Inactive")}
                 />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="mt-6">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-semibold">
+                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
                     Project Name
+                  </th>
+                  <th className="text-left py-2 px-3 font-semibold sticky left-[220px] z-20 bg-card min-w-[120px]">
+                    Status
                   </th>
                   {visibleMonthIndexes.map((idx) => (
                     <th
@@ -480,35 +529,57 @@ const ProjectReports = () => {
                       {monthLabels[idx].split(" ")[0]}
                     </th>
                   ))}
-                  <th className="text-right py-2 px-3 font-semibold">
+                  <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
                     Total (₹L)
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredProjectDetails.map((item) => (
-                  <tr
-                    key={item.name}
-                    className="border-b border-border/50 hover:bg-muted/30"
-                  >
-                    <td className="py-2 px-3 text-primary font-medium">
-                      {item.name}
-                    </td>
-                    {visibleMonthIndexes.map((idx) => {
-                      const k = months[idx];
-                      return (
-                      <td key={k} className="text-right py-2 px-2 text-xs">
-                        {(item[k] as number).toFixed(2)}
+                {monthTableRows.map((item) => {
+                  const proj = projects.find((p) => p.name === item.name);
+                  return (
+                    <tr
+                      key={item.name}
+                      className="border-b border-border/50 hover:bg-muted/30"
+                    >
+                      <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
+                        {item.name}
                       </td>
-                      );
-                    })}
-                    <td className="text-right py-2 px-3 font-bold text-primary">
-                      {item.total.toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="py-2 px-3 sticky left-[220px] z-10 bg-card min-w-[120px]">
+                        <Badge variant={
+                            proj?.status === "Active" ? "default" : "secondary"
+                          }>
+                          {proj?.status ?? "Active"}
+                        </Badge>
+                      </td>
+                      {visibleMonthIndexes.map((idx) => {
+                        const k = months[idx];
+                        return (
+                          <td key={k} className="text-right py-2 px-2 text-xs">
+                            {(item[k] as number).toFixed(2)}
+                          </td>
+                        );
+                      })}
+                      <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
+                        {item.total.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
-            </table>
+              </table>
+            </div>
+
+            <div className="mt-4">
+              <AdvancedPagination
+                page={monthTablePage}
+                totalPages={monthTableTotalPages}
+                totalItems={filteredProjectDetails.length}
+                perPage={monthTablePageSize}
+                onPageChange={setMonthTablePage}
+                onPerPageChange={() => {}}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -599,7 +670,7 @@ const ProjectReports = () => {
                       </TableCell>
                       <TableCell className="font-semibold">{p.spend}</TableCell>
                       <TableCell>{p.revenue}</TableCell>
-                      <TableCell>{p.leads.toLocaleString()}</TableCell>
+                      <TableCell>{p.leads.toLocaleString("en-IN")}</TableCell>
                       <TableCell>{p.cpl}</TableCell>
                       <TableCell className="font-semibold">{p.roas}</TableCell>
                       <TableCell>
