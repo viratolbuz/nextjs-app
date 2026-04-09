@@ -54,9 +54,7 @@ const KpiCards = () => {
           })
         : projects;
 
-    const activeProjects = projectsInRange.filter(
-      (p) => p.status === "Active" || p.status === "Budget Warning",
-    ).length;
+    const activeProjects = projectsInRange.filter((p) => p.status === "Active").length;
 
     const useProjectsFallback = filteredEntries.length === 0;
     const totalSpend = useProjectsFallback
