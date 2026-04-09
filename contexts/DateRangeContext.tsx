@@ -105,13 +105,27 @@ const getRangeFromPreset = (preset: DatePreset): DateRangeValue => {
 const getPresetLabel = (preset: DatePreset): string =>
   PRESET_LIST.find((p) => p.id === preset)?.label ?? "Custom";
 
-export function DateRangeProvider({ children }: { children: React.ReactNode }) {
-  const [scoped, setScoped] = useState<Record<string, ScopeState>>({
-    dashboard: { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    projects: { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-team": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-platform": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-project": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
+  if (longPreset) {
+    const totalMonths = 12;
+    const rangeMonths = Math.max(1, Math.ceil(daysSpan / 30));
+    const startIdx = Math.max(0, totalMonths - rangeMonths);
+    const sliced = monthlyTrend.filter((_item, idx) => idx >= startIdx);
+    return { data: sliced.length ? sliced : monthlyTrend.slice(-3), xKey: "month", mode: "monthly" };
+  }
+
+  const useHourly = type === "today" || type === "yesterday";
+
+  const useDaily =
+    type === "7days" ||
+    type === "14days" ||
+    type === "lastweek" ||
+    type === "1month" ||
+    (type === "custom" && daysSpan <= 14);
+
+  const filteredEntries = entries.filter((entry) => {
+    const ed = parsePerformanceEntryDate(entry.date, anchor);
+    if (!ed) return false;
+    return !isBefore(ed, startOfDay(from)) && !isAfter(ed, endOfDay(to));
   });
 
   const setPreset = (scope: string, preset: DatePreset) => {
@@ -134,12 +148,21 @@ export function DateRangeProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  return (
-    <DateRangeContext.Provider value={{ scoped, setPreset, setCustomRange }}>
-      {children}
-    </DateRangeContext.Provider>
-  );
-}
+    const spendL = spendLTotal > 0 ? spendLTotal : lastBar.spend / 30;
+    const revenueL = revenueLTotal > 0 ? revenueLTotal : lastBar.revenue / 30;
+    const leads = leadsTotal > 0 ? leadsTotal : Math.max(1, Math.round(lastBar.leads / 30));
+
+    const data = Array.from({ length: 24 }).map((_v, h) => {
+      const w = 0.65 + (((h * 17) % 35) / 100);
+      return {
+        hour: `${String(h).padStart(2, "0")}:00`,
+        spend: Math.round((spendL / 24) * w * 100) / 100,
+        revenue: Math.round((revenueL / 24) * w * 100) / 100,
+        leads: Math.max(0, Math.round((leads / 24) * w)),
+        roas: Math.round(roasAvg * 100) / 100,
+        cpa: Math.round(cpaAvg),
+      };
+    });
 
 export function useDateRange(scope: ScopeKey = "dashboard") {
   const ctx = useContext(DateRangeContext);
@@ -161,17 +184,30 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
       }
     });
 
-  const formatRangeSpan = () =>
-    `${format(state.range.from, "dd MMM yyyy")} - ${format(state.range.to, "dd MMM yyyy")}`;
+  const spendL = filteredEntries.reduce((s, e) => s + e.spend, 0) / 100000;
+  const revenueL = filteredEntries.reduce((s, e) => s + e.revenue, 0) / 100000;
+  const leads = filteredEntries.reduce((s, e) => s + e.leads, 0);
+  const roasAvg =
+    filteredEntries.length > 0 ? filteredEntries.reduce((s, e) => s + e.roas, 0) / filteredEntries.length : 3.9;
+  const cpaAvg =
+    filteredEntries.length > 0 ? filteredEntries.reduce((s, e) => s + e.cpl, 0) / filteredEntries.length : 380;
 
-  return {
-    state,
-    presetLabel: getPresetLabel(state.preset),
-    formatRangeSpan,
-    inRange,
-    filterEntries,
-    setPreset: (preset: DatePreset) => ctx.setPreset(scope, preset),
-    setCustomRange: (range: DateRangeValue) => ctx.setCustomRange(scope, range),
+  const lastBar = monthlyTrend[monthlyTrend.length - 1];
+  const label =
+    format(from, "MMM yyyy") === format(to, "MMM yyyy")
+      ? format(from, "MMMM yyyy")
+      : `${format(from, "MMM yyyy")} – ${format(to, "MMM yyyy")}`;
+
+  const row = {
+    period: label,
+    spend: spendL > 0 ? Math.round(spendL * 100) / 100 : Math.round((lastBar?.spend ?? 4) * (daysSpan / 30) * 100) / 100,
+    revenue:
+      revenueL > 0
+        ? Math.round(revenueL * 100) / 100
+        : Math.round((lastBar?.revenue ?? 16) * (daysSpan / 30) * 100) / 100,
+    leads: leads > 0 ? leads : Math.round((lastBar?.leads ?? 2000) * (daysSpan / 30)),
+    roas: roasAvg,
+    cpa: Math.round(cpaAvg),
   };
 }
 
