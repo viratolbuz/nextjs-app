@@ -169,7 +169,6 @@ const InfoGrids = () => {
                 outerRadius={100}
                 innerRadius={60}
                 dataKey="value"
-                // paddingAngle={2}
                 label={({ value }) => `${value}%`}
                 labelLine={{ strokeWidth: 1 }}
                 stroke="none"
@@ -201,48 +200,6 @@ const InfoGrids = () => {
         </CardContent>
       </Card>
 
-      {/* <Card className="border-border/50 shadow-md">
-        <CardContent className="p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-4 h-4 text-primary" />
-            <h4 className="text-lg font-display font-bold">System Alerts</h4>
-          </div>
-          <div className="space-y-2 h-auto overflow-y-auto scrollbar-themed pr-1">
-            {budgetWarnings.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between p-2.5 rounded-lg bg-warning/5 border border-warning/20"
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold truncate">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    Budget: {p.budget}
-                  </p>
-                </div>
-                <Badge variant="destructive" className="text-[10px] shrink-0">
-                  {p.budgetUsed}% used
-                </Badge>
-              </div>
-            ))}
-            {systemAlerts.map((n) => (
-              <div
-                key={n.id}
-                className="flex items-start gap-2 p-2.5 rounded-lg bg-muted/30"
-              >
-                <div
-                  className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${n.type === "warning" ? "bg-warning" : n.type === "error" ? "bg-destructive" : n.type === "success" ? "bg-emerald-500" : "bg-blue-500"}`}
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs leading-snug">{n.message}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {n.time}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card> */}
     </div>
   );
 };

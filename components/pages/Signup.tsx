@@ -17,14 +17,12 @@ const Signup = () => {
   const inviteToken = searchParams.get('token');
   const paramEmail = searchParams.get('email')?.trim().toLowerCase() || '';
 
-  // Parse invite token (works without localStorage — self-contained)
   const tokenData = parseInviteToken(inviteToken);
   const inviteEmail = tokenData?.email || paramEmail;
   const assignedRole = tokenData?.role || 'User';
   const tokenExpired = tokenData?.expired ?? true;
   const tokenValid = Boolean(tokenData) && !tokenExpired;
 
-  // Also check the Zustand store for the invite (for role info)
   const storeInvite = useUserStore(s => s.getInviteByEmail)(inviteEmail);
   const finalRole = storeInvite?.role || assignedRole;
 
@@ -82,7 +80,6 @@ const Signup = () => {
     setSubmitted(true);
   };
 
-  // Already registered
   if (hasInviteParams && isRegistered && !submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -107,7 +104,6 @@ const Signup = () => {
     );
   }
 
-  // Invalid/expired token
   if (hasInviteParams && !tokenValid && !submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -132,7 +128,6 @@ const Signup = () => {
     );
   }
 
-  // No invite params
   if (!hasInviteParams && !submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -155,7 +150,6 @@ const Signup = () => {
     );
   }
 
-  // Success
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
@@ -194,7 +188,6 @@ const Signup = () => {
     );
   }
 
-  // Signup form
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
       <button onClick={toggleTheme} className="absolute top-4 right-4 p-2 rounded-lg hover:bg-muted">

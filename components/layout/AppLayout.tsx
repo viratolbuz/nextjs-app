@@ -54,13 +54,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
       </Sheet>
       <NotificationToast />
       <div className="flex-1 flex flex-col min-w-0">
-        {/* {proxyUser && (
-          <div className="bg-warning text-warning-foreground px-4 py-2 text-sm flex items-center justify-between">
-            <span>👁 Viewing as <strong>{proxyUser.name}</strong> ({proxyUser.role})</span>
-            <button onClick={exitProxy} className="underline font-medium">Exit Proxy</button>
-          </div>
-        )} */}
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
+           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border px-4 sm:px-6 py-3 flex flex-wrap items-center gap-2 sm:gap-4">
           <Button
             type="button"
             variant="outline"
@@ -72,15 +66,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
             <Menu className="w-5 h-5" />
           </Button>
           <div className="flex-1 flex items-center gap-3 min-w-0">
-            {/* <div className="relative max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search projects, users, platforms..."
-                className="w-full pl-10 pr-4 py-2 rounded-lg bg-muted border-0 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div> */}
-          </div>
+        </div>
           {showDashboardDateRange && (
             <DateRangePicker compact className="h-9 text-xs shrink-0 w-full max-w-[220px] sm:w-auto" />
           )}

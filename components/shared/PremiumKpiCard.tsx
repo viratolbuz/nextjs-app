@@ -9,7 +9,7 @@ export interface KpiCardData {
   value: string | number;
   subtitle?: string;
   icon: LucideIcon;
-  trend?: number; // percentage change, positive = up, negative = down
+  trend?: number;
   accent?:
     | "blue"
     | "emerald"
@@ -151,7 +151,6 @@ const PremiumKpiCard = ({ card, index = 0 }: PremiumKpiCardProps) => {
         `bg-gradient-to-br ${styles.gradient}`,
       )}
     >
-      {/* Right accent bar */}
       <div
         className={cn(
           "absolute right-0 top-2 bottom-2 w-1 rounded-l-full bg-gradient-to-b opacity-60 group-hover:opacity-100 transition-opacity",

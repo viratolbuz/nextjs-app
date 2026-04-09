@@ -5,7 +5,7 @@ import type { ApiResponse, ApiMeta } from './types';
 import { ERROR_CODES } from './types';
 import { roles } from '@/data/mockData';
 
-const SIMULATED_DELAY = 300; // ms
+const SIMULATED_DELAY = 300; 
 
 export const delay = (ms: number = SIMULATED_DELAY) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -37,5 +37,5 @@ export function checkPermission(userRole: string, requiredPermission: string): A
   if (!perm || perm === 'None') {
     return error(ERROR_CODES.PERMISSION_DENIED, `Missing permission: ${requiredPermission}`);
   }
-  return null; // Permission granted
+  return null; 
 }

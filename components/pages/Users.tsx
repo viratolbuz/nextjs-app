@@ -282,7 +282,6 @@ const Users = () => {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Fallback
       const el = document.createElement("textarea");
       el.value = inviteLink;
       document.body.appendChild(el);
@@ -332,7 +331,6 @@ const Users = () => {
   };
 
   const openProxy = (u: User) => {
-    // Ensure user exists in mockUsers array so proxyLoginUser can find them
     if (!mockUsersArray.find((mu) => mu.id === u.id)) {
       mockUsersArray.push(u);
     }
@@ -352,12 +350,6 @@ const Users = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* <PermissionGate permission="Export_performance_entries">
-            <Button variant="outline" size="sm" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-1" />
-              Export
-            </Button>
-          </PermissionGate> */}
           <PermissionGate permission="Create_users">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
@@ -367,7 +359,6 @@ const Users = () => {
         </div>
       </div>
 
-      {/* KPI Cards - Total, Active, Inactive */}
       <div
         className="grid
   grid-cols-1
@@ -412,7 +403,6 @@ const Users = () => {
         ))}
       </div>
 
-      {/* Filters */}
       <Card className="shadow-sm">
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -454,7 +444,6 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card className="shadow-md hidden lg:block overflow-hidden">
         <CardContent className="p-0 overflow-x-auto scrollbar-themed">
           <div className="min-w-[1200px]">
@@ -543,7 +532,6 @@ const Users = () => {
                       <TableCell>
                         <TooltipProvider>
                           <div className="flex gap-1">
-                            {/* Proxy Login */}
                             <PermissionGate
                               permission="View_users"
                               level="View"
@@ -563,7 +551,6 @@ const Users = () => {
                               </Tooltip>
                             </PermissionGate>
 
-                            {/* Edit */}
                             <PermissionGate permission="Edit_users">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -580,7 +567,6 @@ const Users = () => {
                               </Tooltip>
                             </PermissionGate>
 
-                            {/* Delete */}
                             <PermissionGate permission="Delete_users">
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -608,7 +594,6 @@ const Users = () => {
         </CardContent>
       </Card>
 
-      {/* Mobile Cards */}
       <div className="lg:hidden space-y-3">
         {paginated.map((u) => {
           const avatarColor = getAvatarColor(u.name);
@@ -691,7 +676,6 @@ const Users = () => {
         onPerPageChange={setPerPage}
       />
 
-      {/* Invite User Dialog - Email only */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -796,7 +780,6 @@ const Users = () => {
                   )}
                 </p>
               </div>
-              {/* Copyable signup link */}
               <div className="bg-muted rounded-lg p-3 text-left">
                 <label className="text-[13px] font-bold text-muted-foreground block mb-1">
                   Signup Link
@@ -852,7 +835,6 @@ const Users = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

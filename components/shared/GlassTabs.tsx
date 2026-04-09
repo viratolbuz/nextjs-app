@@ -54,13 +54,10 @@ const GlassTabs = ({ tabs, activeTab, onChange }: Props) => {
       style={{
         background: "hsl(var(--foreground) / 0.05)",
         backdropFilter: "blur(40px)",
-        // WebkitBackdropFilter: 'blur(40px)',
         border: "1px solid hsl(var(--foreground) / 0.1)",
-        // boxShadow: 'inset 0 1px 3px hsl(var(--background) / 0.4), inset 0 -1px 2px hsl(var(--foreground) / 0.05), 0 8px 32px hsl(var(--foreground) / 0.08)',
       }}
       onMouseLeave={() => setHoverIndicator(null)}
     >
-      {/* Glass pill indicator */}
       <motion.div
         className="absolute top-1.5 bottom-1.5 rounded-full"
         style={{
@@ -68,9 +65,6 @@ const GlassTabs = ({ tabs, activeTab, onChange }: Props) => {
           backdropFilter: "blur(30px)",
           WebkitBackdropFilter: "blur(30px)",
           border: !hoverIndicator ? "1.5px solid hsl(var(--primary) / 0.5)" : "1px solid hsl(var(--primary) / 0.15)",
-          // boxShadow: !hoverIndicator
-          //   ? '0 0 24px hsl(var(--primary) / 0.15), inset 0 1px 2px hsl(var(--background) / 0.5)'
-          //   : '0 0 12px hsl(var(--primary) / 0.08), inset 0 1px 2px hsl(var(--background) / 0.3)',
         }}
         animate={{
           left: displayIndicator.left,

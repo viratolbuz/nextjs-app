@@ -24,11 +24,9 @@ const NotificationToast = () => {
 
   useEffect(() => {
     if (notifications.length > prevCountRef.current) {
-      // New notification added
       const newOnes = notifications.slice(0, notifications.length - prevCountRef.current);
       setVisible(prev => [...newOnes, ...prev].slice(0, 3));
 
-      // Auto-dismiss after 5s
       newOnes.forEach(n => {
         setTimeout(() => {
           setVisible(prev => prev.filter(v => v.id !== n.id));

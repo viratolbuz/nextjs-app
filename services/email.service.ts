@@ -1,32 +1,8 @@
-/**
- * Email Service — Sends real invite emails using EmailJS.
- *
- * SETUP INSTRUCTIONS:
- * 1. Go to https://www.emailjs.com/ and create a free account
- * 2. Add an email service (Gmail, Outlook, etc.) — note the Service ID
- * 3. Create an email template with these variables:
- *    - {{to_email}} — recipient email
- *    - {{signup_link}} — the signup URL
- *    - {{from_name}} — sender name (e.g., "AdtoRise PMS")
- *    - {{message}} — invite message
- * 4. Note your Template ID and Public Key (from Account → API Keys)
- * 5. Update the constants below
- *
- * Template example body:
- *   Hello,
- *   You've been invited to join {{from_name}}.
- *   Click the link below to create your account:
- *   {{signup_link}}
- *   {{message}}
- */
-
 import emailjs from "@emailjs/browser";
 
-// ====== UPDATE THESE WITH YOUR EMAILJS CREDENTIALS ======
-const EMAILJS_SERVICE_ID = "service_drvmd74"; // e.g., 'service_abc123'
-const EMAILJS_TEMPLATE_ID = "template_235x248"; // e.g., 'template_xyz789'
-const EMAILJS_PUBLIC_KEY = "pVCm63YCt7pfmcvNe"; // e.g., 'aBcDeFgHiJkLmN'
-// =========================================================
+const EMAILJS_SERVICE_ID = "service_drvmd74"; 
+const EMAILJS_TEMPLATE_ID = "template_235x248"; 
+const EMAILJS_PUBLIC_KEY = "pVCm63YCt7pfmcvNe"; 
 
 const isConfigured = () => EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID && EMAILJS_PUBLIC_KEY;
 

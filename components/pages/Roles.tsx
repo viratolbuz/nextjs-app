@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   roles as allRoles,
   sortRolesByDisplayOrder,
@@ -14,7 +20,10 @@ import {
 import { Plus, Edit, Trash2, Shield } from "lucide-react";
 import type { Role } from "@/services/appData.service";
 import PermissionGate from "@/components/shared/PermissionGate";
-import { GroupedFiltersPopover, type FilterSelections } from "@/components/shared/GroupedFiltersPopover";
+import {
+  GroupedFiltersPopover,
+  type FilterSelections,
+} from "@/components/shared/GroupedFiltersPopover";
 
 const ALL_PERMISSIONS = [
   "View_dashboard",
@@ -59,27 +68,45 @@ const permissionToModule = (perm: string) => {
   if (perm.includes("roles")) return "Roles";
   if (perm.includes("projects")) return "Projects";
   if (perm.includes("platforms")) return "Platforms";
-  if (perm.includes("performance") || perm.includes("Export") || perm.includes("Import")) return "Performance";
-  if (perm.includes("report") || perm.includes("spend") || perm.includes("chart") || perm.includes("email"))
+  if (
+    perm.includes("performance") ||
+    perm.includes("Export") ||
+    perm.includes("Import")
+  )
+    return "Performance";
+  if (
+    perm.includes("report") ||
+    perm.includes("spend") ||
+    perm.includes("chart") ||
+    perm.includes("email")
+  )
     return "Reports";
   return "Other";
 };
 
 const MODULE_BADGE_COLORS: Record<string, string> = {
   Dashboard: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  Users: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-  Roles: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
-  Projects: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  Users:
+    "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+  Roles:
+    "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300",
+  Projects:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
   Platforms: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
-  Performance: "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+  Performance:
+    "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
   Reports: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
 };
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  "Super Admin": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
-  Admin: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
-  Manager: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-  Client: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300",
+  "Super Admin":
+    "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300",
+  Admin:
+    "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300",
+  Manager:
+    "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  Client:
+    "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300",
   User: "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300",
 };
 
@@ -99,7 +126,8 @@ const Roles = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [formName, setFormName] = useState("");
   const [formPerms, setFormPerms] = useState<string[]>([]);
-  const [roleFilterSelections, setRoleFilterSelections] = useState<FilterSelections>({ role: [] });
+  const [roleFilterSelections, setRoleFilterSelections] =
+    useState<FilterSelections>({ role: [] });
 
   const openCreate = () => {
     setEditRole(null);
@@ -116,7 +144,9 @@ const Roles = () => {
   };
 
   const togglePerm = (perm: string) => {
-    setFormPerms((prev) => (prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm]));
+    setFormPerms((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
+    );
   };
 
   const saveRole = () => {
@@ -127,7 +157,14 @@ const Roles = () => {
     if (editRole) {
       setRoleList((prev) =>
         prev.map((r) =>
-          r.id === editRole.id ? { ...r, name: formName, permissions, detailedPermissions: formPerms } : r,
+          r.id === editRole.id
+            ? {
+                ...r,
+                name: formName,
+                permissions,
+                detailedPermissions: formPerms,
+              }
+            : r,
         ),
       );
     } else {
@@ -166,7 +203,10 @@ const Roles = () => {
       {
         id: "role",
         label: "Role",
-        options: sortRolesByDisplayOrder(roleList).map((r) => ({ value: r.id, label: r.name })),
+        options: sortRolesByDisplayOrder(roleList).map((r) => ({
+          value: r.id,
+          label: r.name,
+        })),
       },
     ],
     [roleList],
@@ -175,7 +215,9 @@ const Roles = () => {
   const toggleRoleFilter = (groupId: string, value: string) => {
     setRoleFilterSelections((prev) => {
       const cur = prev[groupId] ?? [];
-      const next = cur.includes(value) ? cur.filter((x) => x !== value) : [...cur, value];
+      const next = cur.includes(value)
+        ? cur.filter((x) => x !== value)
+        : [...cur, value];
       return { ...prev, [groupId]: next };
     });
   };
@@ -184,13 +226,21 @@ const Roles = () => {
 
   const displayedRoles = useMemo(() => {
     const ids = roleFilterSelections.role ?? [];
-    const base = ids.length === 0 ? roleList : roleList.filter((r) => ids.includes(r.id));
+    const base =
+      ids.length === 0 ? roleList : roleList.filter((r) => ids.includes(r.id));
     return sortRolesByDisplayOrder(base);
   }, [roleList, roleFilterSelections]);
 
-  const getModuleLevel = (role: RoleWithPerms, module: string, perms: string[]) => {
+  const getModuleLevel = (
+    role: RoleWithPerms,
+    module: string,
+    perms: string[],
+  ) => {
     const granted = perms.filter(
-      (p) => role.permissions[p] === "Full" || role.permissions[p] === "View" || role.detailedPermissions?.includes(p),
+      (p) =>
+        role.permissions[p] === "Full" ||
+        role.permissions[p] === "View" ||
+        role.detailedPermissions?.includes(p),
     );
     if (granted.length === 0) return "None";
     if (granted.length === perms.length) return "Full";
@@ -201,8 +251,12 @@ const Roles = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Roles & Permissions</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">Define access levels for each role</p>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">
+            Roles & Permissions
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Define access levels for each role
+          </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto">
           <GroupedFiltersPopover
@@ -219,25 +273,29 @@ const Roles = () => {
           </PermissionGate>
         </div>
       </div>
-
-      {/* Role Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {displayedRoles.map((role) => {
-          const isSuperAdmin = role.name === "Super Admin" || role.name === "Super-admin";
+          const isSuperAdmin =
+            role.name === "Super Admin" || role.name === "Super-admin";
 
           return (
-            <Card key={role.id} className="border-border/50 shadow-md hover:shadow-lg transition-shadow">
+            <Card
+              key={role.id}
+              className="border-border/50 shadow-md hover:shadow-lg transition-shadow"
+            >
               <CardContent className="p-5">
-                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                       <Shield className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-base">{role.name}</h3>
+                      <h3 className="font-display font-bold text-base">
+                        {role.name}
+                      </h3>
                       <p className="text-xs text-muted-foreground">
-                        {role.userCount} user{role.userCount !== 1 ? "s" : ""} · {role.type}
+                        {role.userCount} user{role.userCount !== 1 ? "s" : ""} ·{" "}
+                        {role.type}
                       </p>
                     </div>
                   </div>
@@ -248,7 +306,6 @@ const Roles = () => {
                   </Badge>
                 </div>
 
-                {/* Module Permission Badges */}
                 <div className="space-y-2 mb-4">
                   {Object.entries(groupedPerms).map(([module, perms]) => {
                     const level = getModuleLevel(role, module, perms);
@@ -274,11 +331,15 @@ const Roles = () => {
                   })}
                 </div>
 
-                {/* Actions - no edit/delete for Super Admin */}
                 {!isSuperAdmin && (
                   <div className="flex gap-2 pt-2 border-t border-border/50 w-full">
                     <PermissionGate permission="Edit_roles">
-                      <Button variant="outline" size="sm" className="w-1/2 gap-1.5" onClick={() => openEdit(role)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-1/2 gap-1.5"
+                        onClick={() => openEdit(role)}
+                      >
                         <Edit className="w-3.5 h-3.5" /> Edit
                       </Button>
                     </PermissionGate>
@@ -299,19 +360,23 @@ const Roles = () => {
           );
         })}
       </div>
-
-      {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto scrollbar-themed">
           <DialogHeader>
-            <DialogTitle className="font-display font-bold">{editRole ? "Edit Role" : "Create New Role"}</DialogTitle>
+            <DialogTitle className="font-display font-bold">
+              {editRole ? "Edit Role" : "Create New Role"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             <div>
               <label className="text-sm font-bold mb-1 block">
                 Role Name <span className="text-destructive">*</span>
               </label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Enter role name" />
+              <Input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Enter role name"
+              />
             </div>
             <div>
               <label className="text-sm font-bold mb-3 block">
@@ -331,8 +396,13 @@ const Roles = () => {
                           key={perm}
                           className="flex items-center justify-between p-2.5 rounded-lg border border-border hover:bg-muted/50 transition-colors shadow-sm"
                         >
-                          <span className="text-xs font-medium">{perm.replace(/_/g, " ")}</span>
-                          <Switch checked={formPerms.includes(perm)} onCheckedChange={() => togglePerm(perm)} />
+                          <span className="text-xs font-medium">
+                            {perm.replace(/_/g, " ")}
+                          </span>
+                          <Switch
+                            checked={formPerms.includes(perm)}
+                            onCheckedChange={() => togglePerm(perm)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -352,20 +422,28 @@ const Roles = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirm */}
-      <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+      <Dialog
+        open={!!deleteConfirm}
+        onOpenChange={() => setDeleteConfirm(null)}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-display font-bold">Confirm Delete</DialogTitle>
+            <DialogTitle className="font-display font-bold">
+              Confirm Delete
+            </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete this role? This action cannot be undone.
+            Are you sure you want to delete this role? This action cannot be
+            undone.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={() => deleteRole(deleteConfirm!)}>
+            <Button
+              variant="destructive"
+              onClick={() => deleteRole(deleteConfirm!)}
+            >
               Delete
             </Button>
           </DialogFooter>

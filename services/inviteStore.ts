@@ -107,11 +107,10 @@ export interface SignupData {
   fullName: string;
   email: string;
   mobile: string;
-  profilePicture: string | null; // base64 or null
+  profilePicture: string | null;
   createdAt: string;
 }
 
-// ---- Invites ----
 export const getInvites = (): Invite[] => {
   try { return JSON.parse(localStorage.getItem(INVITES_KEY) || '[]'); }
   catch { return []; }
@@ -136,7 +135,6 @@ export const getInviteFromToken = (token: string | null | undefined): Invite | n
   const parsed = parseInviteToken(token);
   if (!parsed || isInviteExpired(parsed)) return null;
 
-  // Look up stored invite to get role
   const storedInvite = getInviteByEmail(parsed.email);
   return {
     email: parsed.email,
@@ -166,7 +164,6 @@ export const getInviteEmailFromToken = (token: string | null | undefined): strin
   return getInviteFromToken(token)?.email || '';
 };
 
-// ---- Signups ----
 export const getSignups = (): SignupData[] => {
   try { return JSON.parse(localStorage.getItem(SIGNUPS_KEY) || '[]'); }
   catch { return []; }
@@ -190,9 +187,7 @@ export const getSignupByEmail = (email: string): SignupData | undefined => {
   return getSignups().find(s => s.email.toLowerCase() === normalizedEmail);
 };
 
-// Convert signup to User object for the users list
 export const signupToUser = (s: SignupData): User => {
-  // Get assigned role from invite
   const invite = getInviteByEmail(s.email);
   const statusUpdates = JSON.parse(localStorage.getItem('pms_user_status') || '{}');
   const role = statusUpdates[`${s.email.toLowerCase()}_role`] || invite?.role || 'User';
@@ -210,7 +205,6 @@ export const signupToUser = (s: SignupData): User => {
   };
 };
 
-// Store passwords (simulated)
 export const storePassword = (email: string, password: string) => {
   const passwords = JSON.parse(localStorage.getItem(PASSWORDS_KEY) || '{}');
   passwords[normalizeEmail(email)] = password;
@@ -222,7 +216,6 @@ export const verifyPassword = (email: string, password: string): boolean => {
   return passwords[normalizeEmail(email)] === password;
 };
 
-// Generate signup link
 export const generateSignupLink = (email: string, token?: string): string => {
   const normalizedEmail = normalizeEmail(email);
   const params = new URLSearchParams({

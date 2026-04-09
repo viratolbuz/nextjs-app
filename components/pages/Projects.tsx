@@ -127,12 +127,7 @@ const Projects = () => {
       {
         id: "status",
         label: "Status",
-        options: [
-          "Active",
-          "On Hold",
-          "Completed",
-          "Budget Warning",
-        ] as string[],
+        options: ["Active", "Inactive", "Hold"] as string[],
       },
       {
         id: "type",
@@ -243,8 +238,8 @@ const Projects = () => {
   const stats = {
     total: projectList.length,
     active: projectList.filter((p) => p.status === "Active").length,
-    onHold: projectList.filter((p) => p.status === "On Hold").length,
-    warning: projectList.filter((p) => p.status === "Budget Warning").length,
+    Inactive: projectList.filter((p) => p.status === "Inactive").length,
+    onHold: projectList.filter((p) => p.status === "Hold").length,
   };
 
   const openCreate = () => {
@@ -371,9 +366,6 @@ const Projects = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* <PermissionGate permission="Export_performance_entries">
-            <Button variant="outline" size="sm" onClick={exportCSV}><Download className="w-4 h-4 mr-1" />Export CSV</Button>
-          </PermissionGate> */}
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
@@ -383,14 +375,12 @@ const Projects = () => {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div
         className="grid
   grid-cols-1
   md:grid-cols-2
   xl:grid-cols-3
-  2xl:grid-cols-4
-  3xl:grid-cols-4
+  2xl:grid-cols-3
   gap-4"
       >
         {(
@@ -418,21 +408,12 @@ const Projects = () => {
               accent: "amber" as const,
               subtitle: "Paused projects",
             },
-            {
-              label: "Budget Warning",
-              value: stats.warning.toString(),
-              icon: AlertTriangle,
-              accent: "red" as const,
-              subtitle: "Needs attention",
-              trend: -5,
-            },
           ] as KpiCardData[]
         ).map((card, i) => (
           <PremiumKpiCard key={card.label} card={card} index={i} />
         ))}
       </div>
 
-      {/* Filters */}
       <Card className="shadow-sm">
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -474,7 +455,6 @@ const Projects = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card className="shadow-md">
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -504,13 +484,6 @@ const Projects = () => {
                   onClick={() => toggleProjectListSort("manager")}
                 >
                   Manager{projSortIndicator("manager")}
-                </TableHead>
-                <TableHead className="font-bold">Budget</TableHead>
-                <TableHead
-                  className="font-bold cursor-pointer select-none hover:bg-muted/50"
-                  onClick={() => toggleProjectListSort("budget")}
-                >
-                  Spent %{projSortIndicator("budget")}
                 </TableHead>
                 <TableHead
                   className="font-bold cursor-pointer select-none hover:bg-muted/50"
@@ -554,17 +527,6 @@ const Projects = () => {
                   </TableCell>
                   <TableCell className="text-sm font-medium">
                     {p.manager}
-                  </TableCell>
-                  <TableCell className="text-sm font-semibold">
-                    {p.budget}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 min-w-[60px]">
-                      <Progress value={p.budgetUsed} className="h-1.5" />
-                      <span className="text-[12px] font-bold text-muted-foreground">
-                        {p.budgetUsed}%
-                      </span>
-                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -624,7 +586,6 @@ const Projects = () => {
         onPerPageChange={setPerPage}
       />
 
-      {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl sm:w-full max-h-[85vh] overflow-y-auto scrollbar-themed">
           <DialogHeader>
@@ -751,7 +712,6 @@ const Projects = () => {
               </div>
             </div>
 
-            {/* Assign Users & Platforms */}
             <div className="border rounded-lg p-4 bg-muted/10">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -761,7 +721,7 @@ const Projects = () => {
                   </label>
                   <p className="text-[11px] text-muted-foreground">
                     Assign users to platforms. Each platform can only be
-                    assigned to one user.
+                    assigned to one manager.
                   </p>
                 </div>
                 <Button
@@ -785,7 +745,7 @@ const Projects = () => {
                   >
                     <div className="flex-1 min-w-0">
                       <label className="text-[13px] font-semibold mb-1 block">
-                        Assigned User{" "}
+                        Assigned Manager{" "}
                         <span className="text-destructive">*</span>
                       </label>
                       <Select
@@ -799,7 +759,7 @@ const Projects = () => {
                         }
                       >
                         <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Select User" />
+                          <SelectValue placeholder="Select Manager" />
                         </SelectTrigger>
                         <SelectContent>
                           {users.map((u) => (
@@ -851,7 +811,6 @@ const Projects = () => {
               </div>
             </div>
 
-            {/* Platforms & Account IDs */}
             <div className="border rounded-lg p-4 bg-muted/10">
               <div className="flex items-center justify-between mb-3">
                 <div>

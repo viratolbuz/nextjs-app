@@ -6,11 +6,10 @@
 
 import type { JWTPayload, AuthTokens, User } from '@/types';
 
-const JWT_SECRET = 'pms-demo-secret-key-2026'; // Simulated secret
-const ACCESS_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
-const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+const JWT_SECRET = 'pms-demo-secret-key-2026'; 
+const ACCESS_TOKEN_EXPIRY = 60 * 60 * 1000; 
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000; 
 
-// Simulated base64 encode/decode
 const base64Encode = (data: string): string => {
   return btoa(encodeURIComponent(data));
 };
@@ -23,7 +22,6 @@ const base64Decode = (encoded: string): string => {
   }
 };
 
-// Create a simulated JWT token
 const createToken = (payload: JWTPayload): string => {
   const header = base64Encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const body = base64Encode(JSON.stringify(payload));
@@ -31,7 +29,6 @@ const createToken = (payload: JWTPayload): string => {
   return `${header}.${body}.${signature}`;
 };
 
-// Decode a simulated JWT token
 export const decodeToken = (token: string): JWTPayload | null => {
   try {
     const parts = token.split('.');
@@ -43,14 +40,12 @@ export const decodeToken = (token: string): JWTPayload | null => {
   }
 };
 
-// Check if token is expired
 export const isTokenExpired = (token: string): boolean => {
   const payload = decodeToken(token);
   if (!payload) return true;
   return Date.now() > payload.exp;
 };
 
-// Generate tokens for a user
 export const generateTokens = (user: User): AuthTokens => {
   const now = Date.now();
 
@@ -78,14 +73,12 @@ export const generateTokens = (user: User): AuthTokens => {
   };
 };
 
-// Refresh access token using refresh token
 export const refreshAccessToken = (refreshToken: string, user: User): AuthTokens | null => {
   if (isTokenExpired(refreshToken)) return null;
 
   return generateTokens(user);
 };
 
-// Token storage helpers
 const TOKEN_KEY = 'pms-auth-tokens';
 const USER_KEY = 'pms-auth-user';
 
@@ -114,19 +107,16 @@ export const clearAuthStorage = (): void => {
   localStorage.removeItem('pms-user');
 };
 
-// Validate current session
 export const validateSession = (): { user: User | null; tokens: AuthTokens | null; valid: boolean } => {
   const tokens = getStoredTokens();
   const user = getStoredUser();
 
   if (!tokens || !user) return { user: null, tokens: null, valid: false };
 
-  // Check access token
   if (!isTokenExpired(tokens.accessToken)) {
     return { user, tokens, valid: true };
   }
 
-  // Try refresh
   if (!isTokenExpired(tokens.refreshToken)) {
     const newTokens = refreshAccessToken(tokens.refreshToken, user);
     if (newTokens) {
@@ -135,7 +125,6 @@ export const validateSession = (): { user: User | null; tokens: AuthTokens | nul
     }
   }
 
-  // All expired
   clearAuthStorage();
   return { user: null, tokens: null, valid: false };
 };

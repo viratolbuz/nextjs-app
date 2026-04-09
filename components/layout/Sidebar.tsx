@@ -30,7 +30,7 @@ interface NavItem {
   icon: any;
   type?: 'group';
   children?: NavItem[];
-  permKey?: string; // permission key required to view this item
+  permKey?: string;
 }
 
 const allNavItems: NavItem[] = [
@@ -85,9 +85,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
 
   const activeUser = proxyUser || currentUser;
 
-  // Filter nav items based on permissions
   const navItems = useMemo(() => {
-    // Super admins and admins see everything
     if (isSuperAdmin) return allNavItems;
 
     return allNavItems.map(item => {
@@ -120,7 +118,6 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
         backdropFilter: "blur(20px)",
       }}
     >
-      {/* Logo */}
       <div className="p-4 flex items-center gap-3 border-b border-sidebar-border/50">
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
           A
@@ -133,17 +130,6 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
         )}
       </div>
 
-      {/* Proxy Banner */}
-      {/* {proxyUser && !collapsed && (
-        <div className="mx-3 mt-3 p-2 rounded-lg border border-primary/30 bg-primary/10">
-          <p className="text-[12px] text-primary font-medium">Viewing as: {proxyUser.name}</p>
-          <button onClick={exitProxy} className="text-[12px] text-primary hover:underline mt-0.5">
-            ← Back to Admin
-          </button>
-        </div>
-      )} */}
-
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto scrollbar-themed py-3 px-2 space-y-0.5">
         {navItems.map((item, i) => {
           if (item.type === "group" && item.children) {
@@ -264,7 +250,6 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
         })}
       </nav>
 
-      {/* Footer */}
       <div className="border-t border-sidebar-border/50 p-3 space-y-2">
         {!inDrawer && (
           <div className="flex items-center justify-end">
