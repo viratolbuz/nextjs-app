@@ -100,6 +100,7 @@ const Projects = () => {
     manager: [],
     country: [],
     client: [],
+    user: [],
   });
   const [sortKey, setSortKey] = useState<ProjectListSortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -152,6 +153,11 @@ const Projects = () => {
         label: "Client",
         options: [...new Set(projectList.map((p) => p.client))].sort(),
       },
+      {
+        id: "user",
+        label: "User",
+        options: users.map((u) => u.name).sort(),
+      },
     ],
     [projectList],
   );
@@ -174,6 +180,7 @@ const Projects = () => {
       manager: [],
       country: [],
       client: [],
+      user: [],
     });
     setPage(1);
   };
@@ -216,11 +223,13 @@ const Projects = () => {
     const mg = filterSelections.manager ?? [];
     const co = filterSelections.country ?? [];
     const cl = filterSelections.client ?? [];
+    const us = filterSelections.user ?? [];
     if (st.length) list = list.filter((p) => st.includes(p.status));
     if (ty.length) list = list.filter((p) => ty.includes(p.type));
     if (mg.length) list = list.filter((p) => mg.includes(p.manager));
     if (co.length) list = list.filter((p) => co.includes(p.country));
     if (cl.length) list = list.filter((p) => cl.includes(p.client));
+    if (us.length) list = list.filter((p) => us.includes(p.manager));
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -376,7 +385,8 @@ const Projects = () => {
             campaigns across all platforms
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <DateRangePicker scope="projects" className="w-[150px]" />
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
@@ -496,6 +506,7 @@ const Projects = () => {
                 >
                   Manager{projSortIndicator("manager")}
                 </TableHead>
+                <TableHead className="font-bold">Assigned User</TableHead>
                 <TableHead
                   className="font-bold cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => toggleProjectListSort("status")}
@@ -539,6 +550,7 @@ const Projects = () => {
                   <TableCell className="text-sm font-medium">
                     {p.manager}
                   </TableCell>
+                  <TableCell className="text-sm">{p.manager}</TableCell>
                   <TableCell>
                     <Badge
                       className={`text-[12px] border-0 font-bold ${STATUS_COLORS[p.status] || ""}`}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   addDays,
   addHours,
@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { PerformanceEntry } from "@/types";
@@ -187,7 +186,14 @@ export function DateRangePicker({
   const { state, presetLabel, setPreset, setCustomRange } = useDateRange(scope);
   const [open, setOpen] = useState(false);
   const [activeInput, setActiveInput] = useState<"from" | "to">("from");
+  const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
+  const [displayMonth, setDisplayMonth] = useState<Date>(state.range.from);
   const [year, setYear] = useState(String(new Date().getFullYear()));
+
+  useEffect(() => {
+    setDisplayMonth(state.range.from);
+    setYear(String(state.range.from.getFullYear()));
+  }, [state.range.from, open]);
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -199,14 +205,15 @@ export function DateRangePicker({
   const parsedFrom = format(state.range.from, "yyyy-MM-dd");
   const parsedTo = format(state.range.to, "yyyy-MM-dd");
 
-  const monthStarts = useMemo(() => {
-    const selectedYear = Number(year);
-    const now = new Date();
-    const maxMonth = selectedYear === now.getFullYear() ? now.getMonth() : 11;
-    const items: Date[] = [];
-    for (let m = 0; m <= maxMonth; m += 1) items.push(new Date(selectedYear, m, 1));
-    return items;
-  }, [year]);
+  const previewRange = useMemo(() => {
+    if (!hoverDate) return { from: state.range.from, to: state.range.to };
+    if (activeInput === "from") {
+      if (isAfter(hoverDate, state.range.to)) return { from: hoverDate, to: hoverDate };
+      return { from: hoverDate, to: state.range.to };
+    }
+    if (isBefore(hoverDate, state.range.from)) return { from: hoverDate, to: state.range.from };
+    return { from: state.range.from, to: hoverDate };
+  }, [activeInput, hoverDate, state.range.from, state.range.to]);
 
   const updateDateByInput = (key: "from" | "to", value: string) => {
     const parsed = parse(value, "yyyy-MM-dd", new Date());
@@ -217,6 +224,7 @@ export function DateRangePicker({
       else next.from = parsed;
     }
     setCustomRange(next);
+    setDisplayMonth(parsed);
   };
 
   const onSelectDate = (day?: Date) => {
@@ -231,6 +239,14 @@ export function DateRangePicker({
       if (isBefore(next.to, next.from)) next.from = day;
     }
     setCustomRange(next);
+    setDisplayMonth(day);
+    setHoverDate(undefined);
+  };
+
+  const onYearChange = (nextYear: string) => {
+    setYear(nextYear);
+    const y = Number(nextYear);
+    setDisplayMonth((prev) => new Date(y, prev.getMonth(), 1));
   };
 
   return (
@@ -289,7 +305,7 @@ export function DateRangePicker({
               <div className="border rounded-md p-2">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-xs font-medium text-muted-foreground">Date range</p>
-                  <Select value={year} onValueChange={setYear}>
+                  <Select value={year} onValueChange={onYearChange}>
                     <SelectTrigger className="h-8 w-[110px]">
                       <SelectValue />
                     </SelectTrigger>
@@ -302,32 +318,21 @@ export function DateRangePicker({
                     </SelectContent>
                   </Select>
                 </div>
-                <ScrollArea className="h-[360px] pr-2">
-                  <div className="space-y-3">
-                    {monthStarts.map((monthStart) => (
-                      <div key={monthStart.toISOString()} className="border rounded-md">
-                        <Calendar
-                          mode="single"
-                          month={monthStart}
-                          selected={activeInput === "from" ? state.range.from : state.range.to}
-                          onSelect={onSelectDate}
-                          showOutsideDays={false}
-                          classNames={{ nav: "hidden", caption: "px-2 pt-2" }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-
-              <div className="border rounded-md p-2">
                 <Calendar
                   mode="range"
                   numberOfMonths={1}
-                  selected={{ from: state.range.from, to: state.range.to }}
+                  month={displayMonth}
+                  onMonthChange={setDisplayMonth}
+                  selected={previewRange}
+                  onDayMouseEnter={(day) => setHoverDate(day)}
+                  onDayMouseLeave={() => setHoverDate(undefined)}
                   onSelect={(range) => {
-                    if (!range?.from || !range?.to) return;
-                    setCustomRange({ from: range.from, to: range.to });
+                    if (!range?.from && !range?.to) return;
+                    const dateToApply =
+                      activeInput === "from"
+                        ? (range?.from ?? range?.to)
+                        : (range?.to ?? range?.from);
+                    onSelectDate(dateToApply);
                   }}
                 />
               </div>

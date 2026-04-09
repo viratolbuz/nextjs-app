@@ -3,7 +3,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -20,31 +19,20 @@ import {
 } from "@/components/ui/dialog";
 import {
   platforms,
-  chartData,
   platformChartData,
   projects,
   performanceEntries,
 } from "@/services/appData.service";
 import {
-  Download,
   Eye,
-  Globe,
-  DollarSign,
   TrendingUp,
-  Target,
-  Layers,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   ComposedChart,
   Line,
   Area,
@@ -64,7 +52,7 @@ import {
   getGranularityFromPreset,
   parsePerformanceEntryDate,
 } from "@/contexts/DateRangeContext";
-import { parse, parseISO } from "date-fns";
+import { parse } from "date-fns";
 import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const COLORS = [
@@ -147,10 +135,11 @@ type PlatformSortKey =
   | "name"
   | "projects"
   | "spend"
+  | "leads"
+  | "cpl"
   | "revenue"
   | "roas"
-  | "status"
-  | "share";
+  | "performance";
 
 const PlatformReports = () => {
   const { inRange, filterEntries, state } = useDateRange("reports-platform");
@@ -171,7 +160,7 @@ const PlatformReports = () => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
       setSortKey(k);
-      setSortDir(k === "name" || k === "status" ? "asc" : "desc");
+      setSortDir(k === "name" ? "asc" : "desc");
     }
   };
 
@@ -185,44 +174,41 @@ const PlatformReports = () => {
         : platforms;
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
-      const share = (n: string) =>
-        chartData.platformSpendShare.find(
-          (s) => s.name === n || s.name === n.replace(" Ads", ""),
-        )?.value ?? 0;
+      const metrics = (n: string) => {
+        const grouped = filterEntries(performanceEntries).filter(
+          (entry) => entry.platform === n,
+        );
+        const spend = grouped.reduce((sum, e) => sum + e.spend, 0);
+        const leads = grouped.reduce((sum, e) => sum + e.leads, 0);
+        const revenue = grouped.reduce((sum, e) => sum + e.revenue, 0);
+        const cpl = leads > 0 ? spend / leads : 0;
+        const roas = spend > 0 ? revenue / spend : 0;
+        return { spend, leads, revenue, cpl, roas };
+      };
+      const aMetrics = metrics(a.name);
+      const bMetrics = metrics(b.name);
       switch (sortKey) {
         case "name":
           return mul * a.name.localeCompare(b.name);
         case "projects":
           return mul * (a.projects - b.projects);
-        case "status":
-          return mul * a.status.localeCompare(b.status);
         case "spend":
-          return (
-            mul *
-            (parseFloat(a.spendMTD.replace(/[₹L]/g, "")) -
-              parseFloat(b.spendMTD.replace(/[₹L]/g, "")))
-          );
+          return mul * (aMetrics.spend - bMetrics.spend);
+        case "leads":
+          return mul * (aMetrics.leads - bMetrics.leads);
+        case "cpl":
+          return mul * (aMetrics.cpl - bMetrics.cpl);
         case "revenue":
-          return (
-            mul *
-            (parseFloat(a.spendMTD.replace(/[₹L]/g, "")) *
-              parseFloat(a.avgROAS) -
-              parseFloat(b.spendMTD.replace(/[₹L]/g, "")) *
-                parseFloat(b.avgROAS))
-          );
+          return mul * (aMetrics.revenue - bMetrics.revenue);
         case "roas":
-          return (
-            mul *
-            (parseFloat(a.avgROAS.replace("x", "")) -
-              parseFloat(b.avgROAS.replace("x", "")))
-          );
-        case "share":
-          return mul * (share(a.name) - share(b.name));
+          return mul * (aMetrics.roas - bMetrics.roas);
+        case "performance":
+          return mul * ((aMetrics.spend + aMetrics.revenue) - (bMetrics.spend + bMetrics.revenue));
         default:
           return 0;
       }
     });
-  }, [selectedPlatforms, sortKey, sortDir]);
+  }, [selectedPlatforms, sortKey, sortDir, filterEntries]);
 
   const platformKpiCards = useMemo(() => {
     const entriesInRange = filterEntries(performanceEntries);
@@ -262,6 +248,31 @@ const PlatformReports = () => {
       };
     });
   }, [filteredPlatforms, filterEntries]);
+
+  const platformDetailMetrics = useMemo(() => {
+    const grouped = new Map<
+      string,
+      { spend: number; leads: number; revenue: number; projects: number; roas: number; cpl: number }
+    >();
+    const selected = filterEntries(performanceEntries);
+    filteredPlatforms.forEach((platform) => {
+      const rows = selected.filter((entry) => entry.platform === platform.name);
+      const spend = rows.reduce((sum, row) => sum + row.spend, 0);
+      const leads = rows.reduce((sum, row) => sum + row.leads, 0);
+      const revenue = rows.reduce((sum, row) => sum + row.revenue, 0);
+      const roas = spend > 0 ? revenue / spend : 0;
+      const cpl = leads > 0 ? spend / leads : 0;
+      grouped.set(platform.name, {
+        spend,
+        leads,
+        revenue,
+        projects: projects.filter((p) => p.platforms.includes(platform.name)).length,
+        roas,
+        cpl,
+      });
+    });
+    return grouped;
+  }, [filterEntries, filteredPlatforms]);
 
   const visibleMonthIndexes = useMemo(
     () =>
@@ -397,11 +408,11 @@ const PlatformReports = () => {
               </div>
 
               <div className="space-y-1">
-                <p className="text-2xl font-display font-bold">{c.spendL}</p>
+                <p className="text-3xl md:text-4xl font-display font-bold">{c.spendL}</p>
                 <p className="text-[13px] text-muted-foreground">Spend MTD</p>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3 text-sm">
+              <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3 text-sm md:text-base">
                 <div>
                   <p className="text-[13px] text-muted-foreground">Leads</p>
                   <p className="font-bold">{c.leads.toLocaleString("en-IN")}</p>
@@ -647,7 +658,19 @@ const PlatformReports = () => {
                   className="cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => togglePlatformSort("spend")}
                 >
-                  Spend MTD{platformSortIndicator("spend")}
+                  Spend{platformSortIndicator("spend")}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => togglePlatformSort("leads")}
+                >
+                  Leads{platformSortIndicator("leads")}
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => togglePlatformSort("cpl")}
+                >
+                  CPL{platformSortIndicator("cpl")}
                 </TableHead>
                 <TableHead
                   className="cursor-pointer select-none hover:bg-muted/50"
@@ -661,18 +684,6 @@ const PlatformReports = () => {
                 >
                   Avg ROAS{platformSortIndicator("roas")}
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50"
-                  onClick={() => togglePlatformSort("status")}
-                >
-                  Status{platformSortIndicator("status")}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none hover:bg-muted/50"
-                  onClick={() => togglePlatformSort("share")}
-                >
-                  Share{platformSortIndicator("share")}
-                </TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -683,11 +694,13 @@ const PlatformReports = () => {
                   tablePage * tablePerPage,
                 );
                 return paginatedPlatforms.map((p) => {
-                  const share = chartData.platformSpendShare.find(
-                    (s) =>
-                      s.name === p.name ||
-                      s.name === p.name.replace(" Ads", ""),
-                  );
+                  const detail = platformDetailMetrics.get(p.name);
+                  const leads = detail?.leads ?? 0;
+                  const spend = detail?.spend ?? 0;
+                  const revenue = detail?.revenue ?? 0;
+                  const cpl = detail?.cpl ?? 0;
+                  const roas = detail?.roas ?? 0;
+                  const projectsCount = detail?.projects ?? p.projects;
                   return (
                     <TableRow key={p.id}>
                       <TableCell>
@@ -698,33 +711,16 @@ const PlatformReports = () => {
                           <span className="font-medium">{p.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{p.projects}</TableCell>
+                      <TableCell>{projectsCount}</TableCell>
                       <TableCell className="font-semibold">
-                        {p.spendMTD}
+                        {formatAmountFromRupees(spend)}
                       </TableCell>
+                      <TableCell>{leads.toLocaleString("en-IN")}</TableCell>
                       <TableCell>
-                        ₹
-                        {(
-                          parseFloat(p.spendMTD.replace(/[₹L]/g, "")) *
-                          parseFloat(p.avgROAS)
-                        ).toFixed(1)}
-                        L
+                        {formatAmountFromRupees(cpl, 0)}
                       </TableCell>
-                      <TableCell className="font-semibold">
-                        {p.avgROAS}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            p.status === "Connected" ? "default" : "destructive"
-                          }
-                        >
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{share?.value || 0}%</Badge>
-                      </TableCell>
+                      <TableCell>{formatAmountFromRupees(revenue)}</TableCell>
+                      <TableCell className="font-semibold">{roas.toFixed(2)}x</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"

@@ -132,6 +132,8 @@ const TeamReports = () => {
   const [proxyView, setProxyView] = useState<(typeof users)[0] | null>(null);
   const [proxyTab, setProxyTab] = useState("report");
   const [metricsFilter, setMetricsFilter] = useState("all");
+  const [chartTablePage, setChartTablePage] = useState(1);
+  const [chartTablePerPage, setChartTablePerPage] = useState(10);
   const [leaderPage, setLeaderPage] = useState(1);
   const [leaderPerPage, setLeaderPerPage] = useState(10);
   const { proxyLogin } = useAuth();
@@ -226,6 +228,10 @@ const TeamReports = () => {
   const filteredUserNames = filteredUsers.map((u) => u.name);
   const filteredMonthlySpend = chartData.userMonthlySpend.filter((u) =>
     filteredUserNames.includes(u.name),
+  );
+  const chartTableRows = filteredMonthlySpend.slice(
+    (chartTablePage - 1) * chartTablePerPage,
+    chartTablePage * chartTablePerPage,
   );
 
   const visibleMonthIndexes = useMemo(
@@ -761,7 +767,7 @@ const TeamReports = () => {
           </div>
           <div className="mt-6">
             <div className="w-full flex justify-center">
-            <span className="font-bold pb-1 mb-6 mx-2">Spend Data</span>
+            {/* <span className="font-bold pb-1 mb-6 mx-2">Spend Data</span> */}
             </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -784,7 +790,7 @@ const TeamReports = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMonthlySpend.map((item) => (
+                {chartTableRows.map((item) => (
                   <tr
                     key={item.name}
                     className="border-b border-border/50 hover:bg-muted/30"
@@ -807,6 +813,19 @@ const TeamReports = () => {
                 ))}
               </tbody>
             </table>
+            </div>
+            <div className="mt-4">
+              <AdvancedPagination
+                page={chartTablePage}
+                totalPages={Math.max(
+                  1,
+                  Math.ceil(filteredMonthlySpend.length / chartTablePerPage),
+                )}
+                totalItems={filteredMonthlySpend.length}
+                perPage={chartTablePerPage}
+                onPageChange={setChartTablePage}
+                onPerPageChange={setChartTablePerPage}
+              />
             </div>
           </div>
         </CardContent>

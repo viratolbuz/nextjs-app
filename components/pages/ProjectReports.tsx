@@ -15,13 +15,11 @@ import {
 } from "@/components/ui/table";
 import { projects, projectChartData } from "@/services/appData.service";
 import {
-  Download,
   Eye,
-  DollarSign,
+  CheckCircle,
+  PauseCircle,
+  AlertTriangle,
   TrendingUp,
-  Target,
-  Layers,
-  BarChart3,
 } from "lucide-react";
 import {
   BarChart,
@@ -37,6 +35,7 @@ import {
   Legend,
 } from "recharts";
 import ReportFilters from "@/components/shared/ReportFilters";
+import { GroupedFiltersPopover } from "@/components/shared/GroupedFiltersPopover";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
@@ -50,7 +49,6 @@ import {
   getGranularityFromPreset,
 } from "@/contexts/DateRangeContext";
 import { endOfMonth, parse, parseISO, startOfMonth } from "date-fns";
-import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const EXTENDED_HUES = [
   22, 177, 45, 192, 350, 280, 30, 160, 120, 250, 10, 200, 60, 310, 80, 140,
@@ -188,53 +186,46 @@ const ProjectReports = () => {
     });
   }, [selectedProjects, selectedStatuses, sortKey, sortDir, inRange]);
 
+  const filterGroups = useMemo(
+    () => [
+      {
+        id: "status",
+        label: "Status",
+        options: ["Active", "Inactive", "Hold"] as string[],
+      },
+      {
+        id: "project",
+        label: "Projects",
+        options: projects
+          .map((p) => ({ value: p.id, label: p.name }))
+          .sort((a, b) => a.label.localeCompare(b.label)),
+      },
+    ],
+    [],
+  );
+
   const kpis = useMemo(() => {
-    const selectedNames = new Set(filteredProjects.map((p) => p.name));
-    const monthIndexes = monthLabels
-      .map((m, i) => ({ i, d: parse(m, "MMM yyyy", new Date()) }))
-      .filter((x) => {
-        const monthStart = startOfMonth(x.d);
-        const monthEnd = endOfMonth(x.d);
-        return monthEnd >= state.range.from && monthStart <= state.range.to;
-      })
-      .map((x) => x.i);
-
-    const detailRows = projectChartData.projectMonthlyDetails.filter((d) =>
-      selectedNames.has(d.name),
-    );
-
-    let totalSpend = 0;
-    detailRows.forEach((detail) => {
-      monthIndexes.forEach((idx) => {
-        totalSpend += Number(detail[months[idx]] ?? 0);
-      });
-    });
-
-    const totalRevenue = totalSpend * 3.8;
-    const totalLeads = Math.round((totalSpend * 100000) / 380);
-    const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-    const avgCpa = totalLeads > 0 ? (totalSpend * 100000) / totalLeads : 0;
-
+    const active = filteredProjects.filter((p) => p.status === "Active").length;
+    const inactive = filteredProjects.filter((p) => p.status === "Inactive").length;
+    const hold = filteredProjects.filter((p) => p.status === "Hold").length;
     return [
       {
-        label: "Total Spend",
-        value: formatAmountFromLakhs(totalSpend),
-        icon: DollarSign,
+        label: "Active Projects",
+        value: active.toLocaleString("en-IN"),
+        icon: CheckCircle,
       },
       {
-        label: "Revenue",
-        value: formatAmountFromLakhs(totalRevenue),
-        icon: TrendingUp,
+        label: "Inactive Projects",
+        value: inactive.toLocaleString("en-IN"),
+        icon: AlertTriangle,
       },
-      { label: "Avg ROAS", value: `${avgRoas.toFixed(2)}x`, icon: Target },
-      { label: "Avg CPA", value: formatAmountFromRupees(Math.round(avgCpa), 0), icon: DollarSign },
       {
-        label: "Total Leads",
-        value: totalLeads.toLocaleString("en-IN"),
-        icon: Layers,
+        label: "On Hold Projects",
+        value: hold.toLocaleString("en-IN"),
+        icon: PauseCircle,
       },
     ];
-  }, [filteredProjects, state.range.from, state.range.to]);
+  }, [filteredProjects]);
 
   const visibleMonthIndexes = useMemo(
     () =>
@@ -351,22 +342,20 @@ const ProjectReports = () => {
         <DateRangePicker scope="reports-project" className="w-auto" />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {kpis.map((k, i) => (
           <PremiumKpiCard
             key={k.label}
             card={{
               ...k,
               value: k.value,
-              accent: (
-                ["blue", "emerald", "purple", "orange", "cyan"] as const
-              )[i % 5],
+              accent: (["emerald", "orange", "amber"] as const)[i % 3],
             }}
             index={i}
           />
         ))}
       </div>
-
+      {/* 
       <Card>
         <CardContent className="p-6">
           <h3 className="font-semibold mb-4">
@@ -403,7 +392,7 @@ const ProjectReports = () => {
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
-      </Card>
+      </Card> */}
 
       <Card className="border-border/50">
         <CardContent className="p-6">
@@ -412,29 +401,33 @@ const ProjectReports = () => {
               Project Reports - 2026
             </h3>
             <div className="flex flex-wrap items-center gap-2">
-              <ReportFilters
-                items={projects.map((p) => ({ id: p.id, label: p.name }))}
-                selectedItems={selectedProjects}
-                onToggleItem={toggleProject}
-                onSelectAll={() => setSelectedProjects([])}
-                selectLabel="Projects"
-              />
-              <ReportFilters
-                items={[
-                  { id: "Active", label: "Active" },
-                  { id: "Inactive", label: "Inactive" },
-                  { id: "Hold", label: "Hold" },
-                ]}
-                selectedItems={selectedStatuses}
-                onToggleItem={(id) =>
-                  setSelectedStatuses((prev) =>
-                    prev.includes(id)
-                      ? prev.filter((x) => x !== id)
-                      : [...prev, id],
-                  )
-                }
-                onSelectAll={() => setSelectedStatuses([])}
-                selectLabel="Status"
+              <GroupedFiltersPopover
+                groups={filterGroups}
+                selections={{
+                  status: selectedStatuses,
+                  project: selectedProjects,
+                }}
+                onToggle={(groupId, value) => {
+                  if (groupId === "status") {
+                    setSelectedStatuses((prev) =>
+                      prev.includes(value)
+                        ? prev.filter((x) => x !== value)
+                        : [...prev, value],
+                    );
+                    return;
+                  }
+                  if (groupId === "project") {
+                    setSelectedProjects((prev) =>
+                      prev.includes(value)
+                        ? prev.filter((x) => x !== value)
+                        : [...prev, value],
+                    );
+                  }
+                }}
+                onClearAll={() => {
+                  setSelectedStatuses([]);
+                  setSelectedProjects([]);
+                }}
               />
             </div>
           </div>
@@ -513,60 +506,60 @@ const ProjectReports = () => {
           <div className="mt-6">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
-                    Project Name
-                  </th>
-                  <th className="text-left py-2 px-3 font-semibold sticky left-[220px] z-20 bg-card min-w-[120px]">
-                    Status
-                  </th>
-                  {visibleMonthIndexes.map((idx) => (
-                    <th
-                      key={monthLabels[idx]}
-                      className="text-right py-2 px-2 font-medium text-xs"
-                    >
-                      {monthLabels[idx].split(" ")[0]}
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
+                      Project Name
                     </th>
-                  ))}
-                  <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
-                    Total (₹L)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthTableRows.map((item) => {
-                  const proj = projects.find((p) => p.name === item.name);
-                  return (
-                    <tr
-                      key={item.name}
-                      className="border-b border-border/50 hover:bg-muted/30"
-                    >
-                      <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
-                        {item.name}
-                      </td>
-                      <td className="py-2 px-3 sticky left-[220px] z-10 bg-card min-w-[120px]">
-                        <Badge variant={
-                            proj?.status === "Active" ? "default" : "secondary"
+                    <th className="text-left py-2 px-3 font-semibold sticky left-[220px] z-20 bg-card min-w-[120px]">
+                      Status
+                    </th>
+                    {visibleMonthIndexes.map((idx) => (
+                      <th
+                        key={monthLabels[idx]}
+                        className="text-right py-2 px-2 font-medium text-xs"
+                      >
+                        {monthLabels[idx].split(" ")[0]}
+                      </th>
+                    ))}
+                    <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
+                      Total (₹L)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthTableRows.map((item) => {
+                    const proj = projects.find((p) => p.name === item.name);
+                    return (
+                      <tr
+                        key={item.name}
+                        className="border-b border-border/50 hover:bg-muted/30"
+                      >
+                        <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
+                          {item.name}
+                        </td>
+                        <td className="py-2 px-3 sticky left-[220px] z-10 bg-card min-w-[120px]">
+                          <Badge variant={
+                            proj?.status === "Active" ? "success" : proj?.status === "Inactive" ? "destructive" : "secondary"
                           }>
-                          {proj?.status ?? "Active"}
-                        </Badge>
-                      </td>
-                      {visibleMonthIndexes.map((idx) => {
-                        const k = months[idx];
-                        return (
-                          <td key={k} className="text-right py-2 px-2 text-xs">
-                            {(item[k] as number).toFixed(2)}
-                          </td>
-                        );
-                      })}
-                      <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
-                        {item.total.toFixed(2)}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
+                            {proj?.status ?? "Active"}
+                          </Badge>
+                        </td>
+                        {visibleMonthIndexes.map((idx) => {
+                          const k = months[idx];
+                          return (
+                            <td key={k} className="text-right py-2 px-2 text-xs">
+                              {(item[k] as number).toFixed(2)}
+                            </td>
+                          );
+                        })}
+                        <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
+                          {item.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
 
@@ -577,7 +570,7 @@ const ProjectReports = () => {
                 totalItems={filteredProjectDetails.length}
                 perPage={monthTablePageSize}
                 onPageChange={setMonthTablePage}
-                onPerPageChange={() => {}}
+                onPerPageChange={() => { }}
               />
             </div>
           </div>
@@ -676,7 +669,7 @@ const ProjectReports = () => {
                       <TableCell>
                         <Badge
                           variant={
-                            p.status === "Active" ? "default" : "secondary"
+                            p.status === "Active" ? "success" : p.status === "Inactive" ? "destructive" : "secondary"
                           }
                         >
                           {p.status}
