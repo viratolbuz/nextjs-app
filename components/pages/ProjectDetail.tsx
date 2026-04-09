@@ -82,7 +82,6 @@ const ProjectDetail = () => {
         </div>
       </div>
 
-      {/* Project Information */}
       <Card>
         <CardContent className="p-6">
           <h3 className="font-display font-semibold mb-4">Project Information</h3>
@@ -106,14 +105,12 @@ const ProjectDetail = () => {
         </CardContent>
       </Card>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {kpis.map((kpi, i) => (
           <PremiumKpiCard key={kpi.label} card={{ ...kpi, value: String(kpi.value), accent: (['blue', 'emerald', 'cyan', 'purple', 'orange', 'pink'] as const)[i % 6] }} index={i} />
         ))}
       </div>
 
-      {/* Glass Tabs */}
       <GlassTabs
         tabs={[
           { key: 'timeline', label: 'Timeline', icon: Clock },
@@ -124,7 +121,6 @@ const ProjectDetail = () => {
         onChange={setActiveTab}
       />
 
-        {/* Timeline Tab */}
         {activeTab === 'timeline' && (
           <div className="space-y-6">
             <Card>
@@ -143,7 +139,6 @@ const ProjectDetail = () => {
                   </div>
                 </div>
 
-                {/* Metrics Filter */}
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-sm font-medium flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Performance Timeline Chart</h4>
                   <Select value={metricsFilter} onValueChange={setMetricsFilter}>
@@ -173,7 +168,6 @@ const ProjectDetail = () => {
               </CardContent>
             </Card>
 
-            {/* Performance Overview Table */}
             <Card>
               <CardContent className="p-4 overflow-x-auto">
                 <h3 className="font-display font-semibold mb-4">Performance Overview</h3>
@@ -214,7 +208,6 @@ const ProjectDetail = () => {
         )}
 
 
-      {/* Report Tab */}
       {activeTab === 'report' && (
         <Card>
           <CardContent className="p-6">
@@ -223,7 +216,6 @@ const ProjectDetail = () => {
               <Button variant="outline" size="sm">📥 Download PDF</Button>
             </div>
 
-            {/* Report Filters */}
             <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg bg-muted/30 border border-border">
               <div>
                 <label className="text-[13px] text-muted-foreground block mb-1">Date Range</label>
@@ -249,20 +241,17 @@ const ProjectDetail = () => {
               </div>
             </div>
 
-            {/* Report Preview */}
             <div className="bg-muted/20 rounded-lg p-6 border border-border space-y-6">
               <div className="text-center p-4 bg-sidebar rounded-lg text-sidebar-primary-foreground">
                 <h4 className="font-display font-bold text-lg">March 2026 Performance Marketing Report</h4>
               </div>
 
-              {/* Blended Overview */}
               <div className="grid grid-cols-3 gap-4">
                 <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Total Spend</p><p className="text-xl font-bold text-primary">{project.spend}</p></CardContent></Card>
                 <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Total Leads</p><p className="text-xl font-bold">{project.leads.toLocaleString()}</p></CardContent></Card>
                 <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Avg CPL</p><p className="text-xl font-bold">{project.cpl}</p></CardContent></Card>
               </div>
 
-              {/* Spend & Conversion Trend */}
               <div>
                 <h5 className="font-semibold mb-3 text-center">Spend & Conversion Trend</h5>
                 <ResponsiveContainer width="100%" height={250}>
@@ -277,7 +266,6 @@ const ProjectDetail = () => {
                 </ResponsiveContainer>
               </div>
 
-              {/* Custom Notes */}
               <div>
                 <h5 className="font-medium mb-2">Custom Notes</h5>
                 <textarea className="w-full bg-background border border-border rounded-lg p-3 text-sm min-h-[80px]" placeholder="Add notes for this report..." />
@@ -287,7 +275,6 @@ const ProjectDetail = () => {
         </Card>
       )}
 
-      {/* History Tab */}
       {activeTab === 'history' && (
         <Card>
           <CardContent className="p-6">

@@ -146,7 +146,6 @@ export function buildDashboardPerformanceSeries(
 
   const useHourly = type === "today" || type === "yesterday";
 
-  // Last month should render as a 30-day daily series (not a single summary point).
   const useDaily =
     type === "7days" ||
     type === "14days" ||
@@ -187,7 +186,6 @@ export function buildDashboardPerformanceSeries(
     const leads = leadsTotal > 0 ? leadsTotal : Math.max(1, Math.round(lastBar.leads / 30));
 
     const data = Array.from({ length: 24 }).map((_v, h) => {
-      // Deterministic distribution so the chart stays stable between renders.
       const w = 0.65 + (((h * 17) % 35) / 100);
       return {
         hour: `${String(h).padStart(2, "0")}:00`,
@@ -254,7 +252,6 @@ export function buildDashboardPerformanceSeries(
     return { data, xKey: "period", mode: "daily" };
   }
 
-  // Last month (rolling ~30d) and medium custom: one summary point — axis shows period, not each day
   const spendL = filteredEntries.reduce((s, e) => s + e.spend, 0) / 100000;
   const revenueL = filteredEntries.reduce((s, e) => s + e.revenue, 0) / 100000;
   const leads = filteredEntries.reduce((s, e) => s + e.leads, 0);

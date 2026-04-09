@@ -21,7 +21,6 @@ const getTargetDummyData = () => {
 const useDummyData = () => USE_DUMMY;
 
 const apiPlaceholder = <T>(resource: string, fallback: T): T => {
-  // Placeholder only: API calls will be wired here during backend integration.
   void `${API_URL.replace(/\/$/, "")}/${resource}`;
   return fallback;
 };
@@ -71,7 +70,6 @@ export const getPlatformActiveUsers = () =>
         getTargetDummyData().platformActiveUsers,
       );
 
-// Named exports keep existing consumers easy to migrate without UI refactor.
 export const users = getUsers();
 export const platforms = getPlatforms();
 export const projects = getProjects();

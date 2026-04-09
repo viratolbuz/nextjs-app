@@ -1,4 +1,3 @@
-// ========== CORE TYPES ==========
 
 export interface User {
   id: string;
@@ -35,7 +34,7 @@ export interface Project {
   manager: string;
   budget: string;
   budgetUsed: number;
-  status: 'Active' | 'On Hold' | 'Completed' | 'Budget Warning';
+  status: 'Active' | 'Hold' | 'Inactive';
   spend: string;
   revenue: string;
   leads: number;
@@ -74,8 +73,6 @@ export interface Notification {
   read: boolean;
 }
 
-// ========== AUTH TYPES ==========
-
 export interface JWTPayload {
   sub: string;
   email: string;
@@ -98,8 +95,6 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
 }
-
-// ========== CHART DATA TYPES ==========
 
 export interface PerformanceTrendItem {
   month: string;

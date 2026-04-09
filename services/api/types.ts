@@ -30,7 +30,6 @@ export interface PaginatedRequest {
   filters?: Record<string, string[]>;
 }
 
-// Standard error codes
 export const ERROR_CODES = {
   UNAUTHORIZED: 'UNAUTHORIZED',
   FORBIDDEN: 'FORBIDDEN',

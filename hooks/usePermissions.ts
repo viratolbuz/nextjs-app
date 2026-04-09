@@ -7,36 +7,29 @@ import { useAuth } from '@/contexts/AuthContext';
 import { roles } from '@/data/mockData';
 
 export const PERMISSION_KEYS = {
-  // Dashboard
   VIEW_DASHBOARD: 'View_dashboard',
   MANAGE_DASHBOARD: 'Manage_dashboard',
-  // Users
   VIEW_USERS: 'View_users',
   CREATE_USERS: 'Create_users',
   EDIT_USERS: 'Edit_users',
   DELETE_USERS: 'Delete_users',
-  // Roles
   VIEW_ROLES: 'View_roles',
   CREATE_ROLES: 'Create_roles',
   EDIT_ROLES: 'Edit_roles',
   DELETE_ROLES: 'Delete_roles',
-  // Projects
   VIEW_PROJECTS: 'View_projects',
   CREATE_PROJECTS: 'Create_projects',
   EDIT_PROJECTS: 'Edit_projects',
   DELETE_PROJECTS: 'Delete_projects',
-  // Platforms
   VIEW_PLATFORMS: 'View_platforms',
   EDIT_PLATFORMS: 'Edit_platforms',
   DELETE_PLATFORMS: 'Delete_platforms',
-  // Performance
   VIEW_PERFORMANCE: 'View_performance_entries',
   CREATE_PERFORMANCE: 'Create_performance_entries',
   EDIT_PERFORMANCE: 'Edit_performance_entries',
   DELETE_PERFORMANCE: 'Delete_performance_entries',
   EXPORT_PERFORMANCE: 'Export_performance_entries',
   IMPORT_PERFORMANCE: 'Import_performance_entries',
-  // Reports
   TEAM_SPEND: 'Team_spend',
   SPEND_CHART: 'Spend_chart',
   SPEND_CHART_REPORT: 'Spend_chart_report',
@@ -73,7 +66,6 @@ export const usePermissions = () => {
   const isSuperAdmin =
     activeRole?.name === 'Super Admin' || activeRole?.name === 'Super-admin';
 
-  // Module-level CRUD helpers
   const can = useCallback((action: 'view' | 'create' | 'edit' | 'delete' | 'export' | 'import', module: string): boolean => {
     if (isSuperAdmin) return true;
     const key = `${action.charAt(0).toUpperCase() + action.slice(1)}_${module}`;

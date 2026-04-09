@@ -73,7 +73,6 @@ export const {
   updateCurrentUser,
 } = authSlice.actions;
 
-// Thunk-like action creator for login
 export const performLogin = (email: string, password: string) => {
   return (dispatch: any) => {
     dispatch(loginStart());

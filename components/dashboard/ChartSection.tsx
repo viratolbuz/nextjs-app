@@ -61,22 +61,18 @@ const ChartSection = () => {
 
     return (
       <div className="bg-card/95 backdrop-blur-md border border-border rounded-xl shadow-xl p-3 min-w-[220px]">
-        {/* Title */}
         <p className="text-sm font-semibold mb-2">{label}</p>
 
-        {/* Content */}
         <div className="flex flex-col gap-1">
           {payload.map((item: any, index: number) => (
             <div
               key={index}
               className="flex justify-between items-center gap-6"
             >
-              {/* Label */}
               <span style={{ color: item.color }} className="text-sm">
                 {item.name}
               </span>
 
-              {/* Value */}
               <span className="text-sm font-medium text-right">
                 {formatValue(item.value, item.name)}
               </span>

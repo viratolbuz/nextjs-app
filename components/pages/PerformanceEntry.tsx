@@ -19,7 +19,6 @@ import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
 import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
 
-// Generate more mock data
 const generateEntries = (): PerformanceEntry[] => {
   const entries: PerformanceEntry[] = [...allEntries];
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -143,9 +142,6 @@ const PerformanceEntryPage = () => {
           <p className="text-sm sm:text-[15px] text-muted-foreground">Log daily Spend, Leads, CPL, Revenue and ROAS per project</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {/* <PermissionGate permission="Export_performance_entries">
-            <Button variant="outline" size="sm" onClick={exportCSV} className="bg-success/10 text-success border-success/30 hover:bg-success/20"><Download className="w-4 h-4 mr-1" />Export</Button>
-          </PermissionGate> */}
           <PermissionGate permission="Import_performance_entries">
             <Button variant="outline" size="sm" className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"><FileDown className="w-4 h-4 mr-1" />Download Template</Button>
             <Button variant="outline" size="sm"><Upload className="w-4 h-4 mr-1" />Import</Button>
@@ -156,7 +152,6 @@ const PerformanceEntryPage = () => {
         </div>
       </div>
 
-      {/* Totals */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         {[
           { l: 'Total Spend', v: `₹${(totals.spend / 100000).toFixed(1)}L` },
@@ -169,7 +164,6 @@ const PerformanceEntryPage = () => {
         ))}
       </div>
 
-      {/* Search */}
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -203,7 +197,6 @@ const PerformanceEntryPage = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card className="overflow-hidden">
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -262,7 +255,6 @@ const PerformanceEntryPage = () => {
 
       <AdvancedPagination page={page} totalPages={totalPages} totalItems={filtered.length} perPage={perPage} onPageChange={setPage} onPerPageChange={setPerPage} />
 
-      {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg sm:w-full">
           <DialogHeader><DialogTitle>{editEntry ? 'Edit Entry' : 'Add Performance Entry'}</DialogTitle></DialogHeader>

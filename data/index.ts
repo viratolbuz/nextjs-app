@@ -11,7 +11,6 @@ export const developmentDummyData = {
 
 export { productionDummyData };
 
-// Backward-compatible exports defaulting to development data
 export * from "@/data/dummy/core";
 export * from "@/data/dummy/charts";
 export * from "@/data/dummy/platforms";

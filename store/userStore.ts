@@ -1,14 +1,8 @@
-/**
- * Zustand User Store — Single source of truth for all user management.
- * Handles: invites, signups, authentication, proxy login, role assignment.
- * Persists to localStorage and syncs across components reactively.
- */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { users as mockUsers } from '@/data/mockData';
 import type { User } from '@/data/mockData';
 
-// ---- Types ----
 export interface Invite {
   email: string;
   role: string;
@@ -28,12 +22,10 @@ export interface RegisteredUser {
 }
 
 interface UserStore {
-  // Invites
   invites: Invite[];
   addInvite: (email: string, role: string) => Invite;
   getInviteByEmail: (email: string) => Invite | undefined;
 
-  // Registered users (from signup)
   registeredUsers: RegisteredUser[];
   registerUser: (data: Omit<RegisteredUser, 'id' | 'createdAt'>) => RegisteredUser;
   getRegisteredByEmail: (email: string) => RegisteredUser | undefined;
@@ -42,10 +34,8 @@ interface UserStore {
   updateInviteRole: (email: string, role: string) => void;
   removeUserByEmail: (email: string) => void;
 
-  // Get all users (mock + invites + registered) as User[]
   getAllUsers: () => User[];
 
-  // Auth
   verifyLogin: (email: string, password: string) => User | null;
 }
 
@@ -62,7 +52,6 @@ const fromBase64Url = (value: string) => {
   return atob(`${normalized}${padding}`);
 };
 
-// Build a self-contained token with email + expiry
 export const buildInviteToken = (email: string, role: string) => {
   const payload = {
     email: normalize(email),
@@ -74,7 +63,6 @@ export const buildInviteToken = (email: string, role: string) => {
   return toBase64Url(JSON.stringify(payload));
 };
 
-// Parse and validate a token — works without localStorage
 export const parseInviteToken = (token: string | null | undefined): { email: string; role: string; expired: boolean } | null => {
   if (!token) return null;
   try {
@@ -84,7 +72,6 @@ export const parseInviteToken = (token: string | null | undefined): { email: str
     const expired = new Date(parsed.expiresAt).getTime() < Date.now();
     return { email: normalize(parsed.email), role: parsed.role || 'User', expired };
   } catch {
-    // Try legacy format
     try {
       const decoded = fromBase64Url(token);
       const [email, ts] = decoded.split(':');
@@ -112,7 +99,6 @@ export const generateSignupLink = (email: string, token: string) => {
   return `${resolveSignupBaseUrl()}/signup?${params.toString()}`;
 };
 
-// Convert RegisteredUser → User (for display in user list)
 const registeredToUser = (r: RegisteredUser): User => ({
   id: r.id,
   name: r.fullName,
@@ -229,11 +215,9 @@ export const useUserStore = create<UserStore>()(
       verifyLogin: (email, password) => {
         const normalizedEmail = normalize(email);
 
-        // Check mock users first (demo: any password works for mock users)
         const mockUser = mockUsers.find(u => u.email.toLowerCase() === normalizedEmail);
         if (mockUser) return mockUser;
 
-        // Check registered users with password verification
         const registered = get().getRegisteredByEmail(normalizedEmail);
         if (registered && registered.password === password) {
           return registeredToUser(registered);

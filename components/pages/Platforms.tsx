@@ -109,7 +109,6 @@ const Platforms = () => {
         </PermissionGate>
       </div>
 
-      {/* KPI Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {([
           { label: 'Total Platforms', value: stats.total.toString(), icon: Globe, accent: 'blue' as const, subtitle: 'All platforms', trend: 5 },
@@ -121,7 +120,6 @@ const Platforms = () => {
         ))}
       </div>
 
-      {/* Filters */}
       <Card className="shadow-sm">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -153,7 +151,6 @@ const Platforms = () => {
         </CardContent>
       </Card>
 
-      {/* Platform Grid Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {paginated.map(p => (
           <Card key={p.id} className="shadow-md hover:shadow-lg transition-shadow border-border/50">
@@ -173,7 +170,6 @@ const Platforms = () => {
                 </Badge>
               </div>
 
-              {/* Stats Row */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="text-center p-2 rounded-lg bg-muted/30">
                   <p className="text-lg font-bold">{p.projects}</p>
@@ -194,7 +190,6 @@ const Platforms = () => {
                 <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Updated: Apr 2026</span>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-2 pt-3 border-t border-border/50">
                 <Button variant="outline" size="sm" className="flex-1 text-[13px] gap-1" onClick={() => setViewProjects(p.id)}>
                   <Eye className="w-3.5 h-3.5" /> View Projects
@@ -226,7 +221,6 @@ const Platforms = () => {
 
       <AdvancedPagination page={page} totalPages={totalPages} totalItems={filtered.length} perPage={perPage} onPageChange={setPage} onPerPageChange={setPerPage} />
 
-      {/* View Connected Projects */}
       <Dialog open={!!viewProjects} onOpenChange={() => setViewProjects(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle className="font-display font-bold">Connected Projects</DialogTitle></DialogHeader>
@@ -244,7 +238,6 @@ const Platforms = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Create/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle className="font-display font-bold">{editPlat ? 'Edit Platform' : 'Add Platform'}</DialogTitle></DialogHeader>
