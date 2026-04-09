@@ -18,6 +18,7 @@ import type { PerformanceEntry } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
 import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
+import { formatAmountFromRupees } from '@/lib/amount';
 
 const generateEntries = (): PerformanceEntry[] => {
   const entries: PerformanceEntry[] = [...allEntries];
@@ -154,10 +155,10 @@ const PerformanceEntryPage = () => {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         {[
-          { l: 'Total Spend', v: `₹${(totals.spend / 100000).toFixed(1)}L` },
-          { l: 'Total Leads', v: totals.leads.toLocaleString() },
-          { l: 'Avg CPL', v: `₹${avgCPL}` },
-          { l: 'Total Revenue', v: `₹${(totals.revenue / 100000).toFixed(1)}L` },
+          { l: 'Total Spend', v: formatAmountFromRupees(totals.spend) },
+          { l: 'Total Leads', v: totals.leads.toLocaleString("en-IN") },
+          { l: 'Avg CPL', v: formatAmountFromRupees(avgCPL, 0) },
+          { l: 'Total Revenue', v: formatAmountFromRupees(totals.revenue) },
           { l: 'Avg ROAS', v: `${avgROAS}x` },
         ].map((s, i) => (
           <Card key={i}><CardContent className="p-4 text-center"><p className="text-xl font-display font-bold">{s.v}</p><p className="text-[13px] text-muted-foreground">{s.l}</p></CardContent></Card>
@@ -226,10 +227,10 @@ const PerformanceEntryPage = () => {
                     <TableCell><Badge variant={proj?.type === 'Real Estate' ? 'secondary' : 'default'} className="text-[12px]">{proj?.type || 'Lead Gen'}</Badge></TableCell>
                     <TableCell className="text-sm">{proj?.client || e.project}</TableCell>
                     <TableCell className="text-sm">{e.platform}</TableCell>
-                    <TableCell className="text-right text-sm">₹{e.spend.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-sm">{e.leads > 0 ? e.leads.toLocaleString() : '-'}</TableCell>
-                    <TableCell className="text-right text-sm">{e.cpl > 0 ? `₹${e.cpl.toLocaleString()}` : '-'}</TableCell>
-                    <TableCell className="text-right text-sm">{e.revenue > 0 ? `₹${e.revenue.toLocaleString()}` : '-'}</TableCell>
+                    <TableCell className="text-right text-sm">{formatAmountFromRupees(e.spend)}</TableCell>
+                    <TableCell className="text-right text-sm">{e.leads > 0 ? e.leads.toLocaleString("en-IN") : '-'}</TableCell>
+                    <TableCell className="text-right text-sm">{e.cpl > 0 ? formatAmountFromRupees(e.cpl, 0) : '-'}</TableCell>
+                    <TableCell className="text-right text-sm">{e.revenue > 0 ? formatAmountFromRupees(e.revenue) : '-'}</TableCell>
                     <TableCell className="text-right text-sm">{e.roas > 0 ? e.roas : '-'}</TableCell>
                     <TableCell className="text-sm">2026</TableCell>
                     <TableCell className="text-sm">March</TableCell>

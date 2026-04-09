@@ -21,6 +21,7 @@ import {
   useDateRange,
   buildDashboardPerformanceSeries,
 } from "@/contexts/DateRangeContext";
+import { formatAmountFromLakhs } from "@/lib/amount";
 
 const axisMuted = { fill: "hsl(var(--muted-foreground))", fontSize: 11 };
 
@@ -31,16 +32,13 @@ const ChartSection = () => {
   const { data: chartSeries, xKey } = useMemo(
     () =>
       buildDashboardPerformanceSeries(
-        state.type,
+        state.preset,
         state.range,
         chartData.performanceTrend,
         performanceEntries,
       ),
-    [state.type, state.range],
+    [state.preset, state.range],
   );
-
-  const formatCurrency = (value: number) =>
-    `₹${value.toLocaleString("en-IN")}L`;
 
   const formatValue = (value: number, name: string) => {
     if (
@@ -48,7 +46,7 @@ const ChartSection = () => {
       name.includes("Revenue") ||
       name.includes("CPA")
     ) {
-      return `₹${value.toLocaleString("en-IN")}L`;
+      return formatAmountFromLakhs(value);
     }
     if (name.includes("Leads")) {
       return value.toLocaleString("en-IN");
@@ -122,7 +120,7 @@ const ChartSection = () => {
                   yAxisId="left"
                   tick={{ fontSize: 12 }}
                   stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => `₹${v}L`}
+                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
                   label={{
                     value: "Spend & revenue (₹ L)",
                     angle: -90,

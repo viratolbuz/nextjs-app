@@ -116,6 +116,7 @@ type TeamSortKey =
   | "cpa";
 
 const TeamReports = () => {
+  const { inRange, state, filterEntries } = useDateRange("reports-team");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<TeamSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -205,7 +206,7 @@ const TeamReports = () => {
       },
       { label: "Avg CPA", value: "₹380", icon: DollarSign },
     ];
-  }, []);
+  }, [filterEntries, filteredUsers.length]);
 
   const filteredUserNames = filteredUsers.map((u) => u.name);
   const filteredMonthlySpend = chartData.userMonthlySpend.filter((u) =>
@@ -231,7 +232,16 @@ const TeamReports = () => {
         cpa: perf.cpa,
       };
     });
-  }, [filteredMonthlySpend]);
+
+    return seeded.map((row) => {
+      const spend = Number(row.spend.toFixed(2));
+      const revenue = Number(row.revenue.toFixed(2));
+      const leads = Math.round(row.leads);
+      const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+      const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
+      return { period: row.period, spend, revenue, leads, roas, cpa };
+    });
+  }, [state.preset, state.range, filteredMonthlySpend.length, filterEntries]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [

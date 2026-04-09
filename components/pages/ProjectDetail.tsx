@@ -18,6 +18,7 @@ import { ArrowLeft, DollarSign, TrendingUp, Target, Users, Globe, Clock, FileTex
 import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import GlassTabs from '@/components/shared/GlassTabs';
 import PremiumKpiCard from '@/components/shared/PremiumKpiCard';
+import { formatAmountFromRupees } from '@/lib/amount';
 
 const ProjectDetail = () => {
   const params = useParams();
@@ -53,7 +54,7 @@ const ProjectDetail = () => {
     { label: 'Total Spend', value: project.spend, icon: DollarSign },
     { label: 'Revenue', value: project.revenue, icon: TrendingUp },
     { label: 'Linked Platforms', value: project.platforms.length, icon: Globe },
-    { label: 'Leads', value: project.leads.toLocaleString(), icon: Target },
+    { label: 'Leads', value: project.leads.toLocaleString("en-IN"), icon: Target },
     { label: 'ROAS', value: project.roas, icon: TrendingUp },
     { label: 'CPL', value: project.cpl, icon: Users },
   ];
@@ -128,7 +129,7 @@ const ProjectDetail = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-display font-semibold">Timeline Report</h3>
                   <div className="flex gap-2">
-                    <DateRangePicker className="w-[150px]" />
+                    <DateRangePicker className="w-auto" />
                     <Select value={platformFilter} onValueChange={setPlatformFilter}>
                       <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -156,7 +157,7 @@ const ProjectDetail = () => {
                   <ComposedChart data={timelineData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={60} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => `₹${(v/100000).toFixed(0)}L`} />
+                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => formatAmountFromRupees(v, 0)} />
                     <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
                     <Legend />
@@ -182,22 +183,22 @@ const ProjectDetail = () => {
                   <TableBody>
                     <TableRow className="bg-primary/5">
                       <TableCell className="font-medium">All Platforms</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">₹{(d.spend / 1000).toFixed(0)}K</TableCell>)}
+                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.spend)}</TableCell>)}
                       <TableCell className="text-right font-bold">{project.spend}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">Spend</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">₹{(d.spend / 1000).toFixed(0)}K</TableCell>)}
+                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.spend)}</TableCell>)}
                       <TableCell className="text-right text-[13px] font-medium">{project.spend}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">Leads/Conversion</TableCell>
                       {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{d.leads}</TableCell>)}
-                      <TableCell className="text-right text-[13px] font-medium">{project.leads.toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-[13px] font-medium">{project.leads.toLocaleString("en-IN")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">CPA</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">₹{d.cpa}</TableCell>)}
+                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.cpa, 0)}</TableCell>)}
                       <TableCell className="text-right text-[13px] font-medium">{project.cpl}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -248,7 +249,7 @@ const ProjectDetail = () => {
 
               <div className="grid grid-cols-3 gap-4">
                 <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Total Spend</p><p className="text-xl font-bold text-primary">{project.spend}</p></CardContent></Card>
-                <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Total Leads</p><p className="text-xl font-bold">{project.leads.toLocaleString()}</p></CardContent></Card>
+                <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Total Leads</p><p className="text-xl font-bold">{project.leads.toLocaleString("en-IN")}</p></CardContent></Card>
                 <Card><CardContent className="p-4 text-center"><p className="text-[13px] text-muted-foreground">Avg CPL</p><p className="text-xl font-bold">{project.cpl}</p></CardContent></Card>
               </div>
 

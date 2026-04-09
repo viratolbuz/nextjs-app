@@ -58,6 +58,8 @@ import PermissionGate from "@/components/shared/PermissionGate";
 import PremiumKpiCard, {
   type KpiCardData,
 } from "@/components/shared/PremiumKpiCard";
+import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import { parseISO } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
   Active:
@@ -89,6 +91,7 @@ type ProjectListSortKey =
 
 const Projects = () => {
   const router = useRouter();
+  const { inRange } = useDateRange("projects");
   const [projectList, setProjectList] = useState(allProjects);
   const [search, setSearch] = useState("");
   const [filterSelections, setFilterSelections] = useState<FilterSelections>({
@@ -195,7 +198,15 @@ const Projects = () => {
     sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const filtered = useMemo(() => {
-    let list = projectList.filter(
+    let list = projectList.filter((p) => {
+      const sourceDate = p.updatedAt || p.createdAt;
+      try {
+        return inRange(parseISO(sourceDate));
+      } catch {
+        return true;
+      }
+    });
+    list = list.filter(
       (p) =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.client.toLowerCase().includes(search.toLowerCase()),
@@ -231,7 +242,7 @@ const Projects = () => {
           return 0;
       }
     });
-  }, [projectList, search, filterSelections, sortKey, sortDir]);
+  }, [projectList, search, filterSelections, sortKey, sortDir, inRange]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);

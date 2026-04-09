@@ -1,8 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useRef, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { DateRangePicker } from '@/contexts/DateRangeContext';
+import { useRouter } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -18,8 +17,6 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
   const { proxyUser, exitProxy, currentUser } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const router = useRouter();
-  const pathname = usePathname();
-  const showDashboardDateRange = pathname === '/dashboard';
   const dispatch = useAppDispatch();
   const notifications = useAppSelector(state => state.notifications.list);
   const [showNotifs, setShowNotifs] = useState(false);

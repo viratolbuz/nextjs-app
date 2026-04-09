@@ -32,7 +32,6 @@ import {
   TrendingUp,
   Target,
   Layers,
-  BarChart3,
 } from "lucide-react";
 import {
   BarChart,
@@ -110,6 +109,7 @@ type PlatformSortKey =
   | "share";
 
 const PlatformReports = () => {
+  const { inRange, filterEntries, state } = useDateRange("reports-platform");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<PlatformSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -236,7 +236,18 @@ const PlatformReports = () => {
       entry.total = parseFloat(total.toFixed(2));
       return entry;
     });
-  }, [filteredPlatformDetails]);
+
+    return rows.map((row) => ({
+      ...row,
+      total: Number(row.total.toFixed(2)),
+      ...Object.fromEntries(
+        filteredPlatformDetails.map((p) => [
+          p.name,
+          Number((Number((row as any)[p.name] ?? 0)).toFixed(2)),
+        ]),
+      ),
+    }));
+  }, [state.preset, state.range, filteredPlatformDetails, filterEntries]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -369,7 +380,7 @@ const PlatformReports = () => {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       <Card className="border-border/50">
         <CardContent className="p-6">

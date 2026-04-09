@@ -97,7 +97,9 @@ type ProjectSortKey =
 
 const ProjectReports = () => {
   const router = useRouter();
+  const { inRange, state } = useDateRange("reports-project");
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<ProjectSortKey>("spend");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [tablePage, setTablePage] = useState(1);
@@ -167,7 +169,7 @@ const ProjectReports = () => {
           return 0;
       }
     });
-  }, [selectedProjects, sortKey, sortDir]);
+  }, [selectedProjects, selectedStatuses, sortKey, sortDir, inRange]);
 
   const kpis = useMemo(() => {
     const totalSpend = projects.reduce(
@@ -230,7 +232,20 @@ const ProjectReports = () => {
         roas: perf.roas,
       };
     });
-  }, [filteredProjectDetails]);
+
+    // Keep chart readable when all projects share a single activity date.
+    const hasAnyPoint = seeded.some((row) => row.Active || row.Inactive || row.Hold);
+    if (!hasAnyPoint) {
+      const fallback = {
+        Active: filteredProjects.filter((p) => p.status === "Active").length,
+        Inactive: filteredProjects.filter((p) => p.status === "Inactive").length,
+        Hold: filteredProjects.filter((p) => p.status === "Hold").length,
+      };
+      return seeded.map((row) => ({ ...row, ...fallback }));
+    }
+
+    return seeded;
+  }, [state.preset, state.range, filteredProjects]);
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -347,6 +362,23 @@ const ProjectReports = () => {
                 onToggleItem={toggleProject}
                 onSelectAll={() => setSelectedProjects([])}
                 selectLabel="Projects"
+              />
+              <ReportFilters
+                items={[
+                  { id: "Active", label: "Active" },
+                  { id: "Inactive", label: "Inactive" },
+                  { id: "Hold", label: "Hold" },
+                ]}
+                selectedItems={selectedStatuses}
+                onToggleItem={(id) =>
+                  setSelectedStatuses((prev) =>
+                    prev.includes(id)
+                      ? prev.filter((x) => x !== id)
+                      : [...prev, id],
+                  )
+                }
+                onSelectAll={() => setSelectedStatuses([])}
+                selectLabel="Status"
               />
             </div>
           </div>
@@ -575,7 +607,7 @@ const ProjectReports = () => {
                       </TableCell>
                       <TableCell className="font-semibold">{p.spend}</TableCell>
                       <TableCell>{p.revenue}</TableCell>
-                      <TableCell>{p.leads.toLocaleString()}</TableCell>
+                      <TableCell>{p.leads.toLocaleString("en-IN")}</TableCell>
                       <TableCell>{p.cpl}</TableCell>
                       <TableCell className="font-semibold">{p.roas}</TableCell>
                       <TableCell>

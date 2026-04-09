@@ -19,6 +19,7 @@ import { TrendingUp, AlertTriangle, Split } from "lucide-react";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { useMemo, useState } from "react";
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
+import { formatAmountFromLakhs } from "@/lib/amount";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -90,7 +91,7 @@ const InfoGrids = () => {
                 type="number"
                 tick={{ fontSize: 12 }}
                 stroke="hsl(var(--muted-foreground))"
-                tickFormatter={(v) => `₹${v}L`}
+                tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
                 label={{
                   value: "Spend (₹ L)",
                   position: "insideBottom",
@@ -120,7 +121,7 @@ const InfoGrids = () => {
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
-                formatter={(v) => [`₹${v}L`, "Spend"]}
+                formatter={(v) => [formatAmountFromLakhs(Number(v)), "Spend"]}
               />
 
               <Bar

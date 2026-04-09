@@ -15,6 +15,7 @@ import PremiumKpiCard, {
 } from "@/components/shared/PremiumKpiCard";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
+import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
 const parseSpend = (s: string) => {
   const num = parseFloat(s.replace(/[₹L,]/g, ""));
@@ -94,11 +95,6 @@ const KpiCards = () => {
     };
   }, [filterEntries, state.range]);
 
-  const formatAmount = (v: number) => {
-    if (v >= 100) return `₹${(v / 100).toFixed(1)}Cr`;
-    return `₹${v.toFixed(1)}L`;
-  };
-
   const cards: KpiCardData[] = [
     {
       label: "Active Projects",
@@ -110,7 +106,7 @@ const KpiCards = () => {
     },
     {
       label: "Total Spend",
-      value: formatAmount(kpis.totalSpend),
+      value: formatAmountFromLakhs(kpis.totalSpend),
       icon: Wallet,
       subtitle: "Across range",
       accent: "orange",
@@ -118,7 +114,7 @@ const KpiCards = () => {
     },
     {
       label: "Total Revenue",
-      value: formatAmount(kpis.totalRevenue),
+      value: formatAmountFromLakhs(kpis.totalRevenue),
       icon: TrendingUp,
       subtitle: "Generated revenue",
       accent: "emerald",
@@ -142,7 +138,7 @@ const KpiCards = () => {
     },
     {
       label: "Average CPL",
-      value: `₹${Math.round(kpis.avgCPL)}`,
+      value: formatAmountFromRupees(kpis.avgCPL, 0),
       icon: Target,
       subtitle: "Cost per lead",
       accent: "purple",
