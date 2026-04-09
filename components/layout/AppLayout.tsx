@@ -64,6 +64,9 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           </Button>
           <div className="flex-1 flex items-center gap-3 min-w-0">
         </div>
+          {showDashboardDateRange && (
+            <DateRangePicker compact className="h-9 text-xs shrink-0 w-full max-w-[220px] sm:w-auto" />
+          )}
           <button type="button" onClick={toggleTheme} className="p-2 rounded-lg hover:bg-muted transition-colors shrink-0 touch-manipulation" title="Toggle theme">
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>

@@ -377,7 +377,6 @@ const Projects = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <DateRangePicker scope="projects" className="w-auto" />
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
