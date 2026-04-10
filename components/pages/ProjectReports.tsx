@@ -14,13 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { projects, projectChartData } from "@/services/appData.service";
-import {
-  Eye,
-  CheckCircle,
-  PauseCircle,
-  AlertTriangle,
-  TrendingUp,
-} from "lucide-react";
+import { Eye, CircleCheck as CheckCircle, CirclePause as PauseCircle, TriangleAlert as AlertTriangle, TrendingUp } from "lucide-react";
 import { GroupedFiltersPopover } from "@/components/shared/GroupedFiltersPopover";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";

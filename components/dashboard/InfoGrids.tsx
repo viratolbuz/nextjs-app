@@ -1,8 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { projects, notifications, chartData } from "@/services/appData.service";
+import { projects, chartData } from "@/services/appData.service";
 import {
   PieChart,
   Pie,
@@ -15,7 +14,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { TrendingUp, AlertTriangle, Split } from "lucide-react";
+import { TrendingUp, Split } from "lucide-react";
 import { useDateRange } from "@/contexts/DateRangeContext";
 import { useMemo, useState } from "react";
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter } from "date-fns";
@@ -58,13 +57,6 @@ const InfoGrids = () => {
   );
 
   const platformSpendShare = chartData.platformSpendShare;
-
-  const systemAlerts = notifications
-    .filter((n) => !n.read || n.type === "warning" || n.type === "error")
-    .slice(0, 6);
-  const budgetWarnings = projectsForRange
-    .filter((p) => p.budgetUsed > 85)
-    .slice(0, 4);
 
   const topSpendChart = topSpendProjects.map((p) => ({
     name: p.name.length > 12 ? p.name.slice(0, 12) + "…" : p.name,
@@ -144,7 +136,7 @@ const InfoGrids = () => {
                           : "brightness(1)",
                       cursor: "pointer",
                     }}
-                    onMouseEnter={() => setActiveBarIndex(index as any)}
+                    onMouseEnter={() => setActiveBarIndex(index as never)}
                   />
                 ))}
               </Bar>

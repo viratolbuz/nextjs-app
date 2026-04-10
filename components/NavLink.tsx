@@ -12,7 +12,7 @@ type NavLinkCompatProps = Omit<ComponentProps<typeof Link>, "className"> & {
 };
 
 const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
-  ({ className, activeClassName, pendingClassName, href, ...props }, ref) => {
+  ({ className, activeClassName, pendingClassName: _pendingClassName, href, ...props }, ref) => {
     const pathname = usePathname();
     const hrefStr = typeof href === "string" ? href : href.pathname || "";
     const isActive = pathname === hrefStr || (hrefStr !== "/" && pathname.startsWith(hrefStr + "/"));

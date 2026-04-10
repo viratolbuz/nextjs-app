@@ -18,7 +18,7 @@ import {
   chartData,
 } from '@/services/appData.service';
 import { ArrowLeft, DollarSign, TrendingUp, Target, Users, Globe, Clock, FileText, History } from 'lucide-react';
-import { Line, XAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import GlassTabs from '@/components/shared/GlassTabs';
 import PremiumKpiCard from '@/components/shared/PremiumKpiCard';
 import { TimeSeriesChartScroll } from '@/components/shared/TimeSeriesChartScroll';

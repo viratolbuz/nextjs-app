@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector } from '@/store';
-import { Bell, X, AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
+import { Bell, X, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle2, Info, Circle as XCircle } from 'lucide-react';
 import type { Notification } from '@/types';
 
 const typeConfig: Record<string, { icon: typeof Bell; gradient: string; border: string }> = {
@@ -34,7 +34,7 @@ const NotificationToast = () => {
       });
     }
     prevCountRef.current = notifications.length;
-  }, [notifications.length]);
+  }, [notifications]);
 
   const dismiss = (id: string) => {
     setVisible(prev => prev.filter(v => v.id !== id));

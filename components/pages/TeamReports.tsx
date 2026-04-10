@@ -20,32 +20,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { users, chartData, projects, performanceEntries } from "@/services/appData.service";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  Eye,
-  Download,
-  TrendingUp,
-  Users as UsersIcon,
-  DollarSign,
-  Target,
-  BarChart3,
-  FolderKanban,
-} from "lucide-react";
+import { Eye, TrendingUp, DollarSign, Target, ChartBar as BarChart3, FolderKanban } from "lucide-react";
 import ReportFilters from "@/components/shared/ReportFilters";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import SwitchUserDropdown from "@/components/shared/SwitchUserDropdown";
-import {
-  Line,
-  XAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  ComposedChart,
-  Area,
-  Legend,
-} from "recharts";
+import { Line, XAxis, CartesianGrid, Tooltip, Area, Legend } from "recharts";
 import GlassTabs from "@/components/shared/GlassTabs";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import InteractiveLegend, {
@@ -67,27 +46,6 @@ import { ReportMatrixScrollTable } from "@/components/shared/ReportMatrixScrollT
 import { formatReportMonthHeader } from "@/lib/reportTableFormat";
 import { parse } from "date-fns";
 import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
-
-const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(var(--chart-6))",
-  "hsl(var(--chart-7))",
-  "hsl(var(--chart-8))",
-];
-const SOFT_COLORS = [
-  "hsl(var(--chart-1-soft))",
-  "hsl(var(--chart-2-soft))",
-  "hsl(var(--chart-3-soft))",
-  "hsl(var(--chart-4-soft))",
-  "hsl(var(--chart-5-soft))",
-  "hsl(var(--chart-6-soft))",
-  "hsl(var(--chart-7-soft))",
-  "hsl(var(--chart-8-soft))",
-];
 
 const months = [
   "apr",
@@ -140,7 +98,6 @@ const TeamReports = () => {
   const [chartTablePerPage, setChartTablePerPage] = useState(10);
   const [leaderPage, setLeaderPage] = useState(1);
   const [leaderPerPage, setLeaderPerPage] = useState(10);
-  const { proxyLogin } = useAuth();
   const { hiddenSeries, toggleSeries } = useHiddenSeries();
 
   const toggleUser = (id: string) => {
@@ -161,7 +118,7 @@ const TeamReports = () => {
     sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const filteredUsers = useMemo(() => {
-    let list =
+    const list =
       selectedUsers.length > 0
         ? users.filter((u) => selectedUsers.includes(u.id))
         : users;
@@ -301,26 +258,6 @@ const TeamReports = () => {
     [monthlyAgg],
   );
 
-  const quarterlyGrouped = useMemo(() => {
-    const quarters = [
-      { label: "Q1 (Apr-Jun 2025)", keys: ["apr", "may", "jun"] as const },
-      { label: "Q2 (Jul-Sep 2025)", keys: ["jul", "aug", "sep"] as const },
-      { label: "Q3 (Oct-Dec 2025)", keys: ["oct", "nov", "dec"] as const },
-      { label: "Q4 (Jan-Mar 2026)", keys: ["jan", "feb", "mar"] as const },
-    ];
-    return quarters.map((q) => {
-      const entry: Record<string, any> = { quarter: q.label };
-      let total = 0;
-      filteredMonthlySpend.forEach((u) => {
-        const val = q.keys.reduce((sum, k) => sum + (u[k] as number), 0);
-        entry[u.name] = parseFloat(val.toFixed(2));
-        total += val;
-      });
-      entry.total = parseFloat(total.toFixed(2));
-      return entry;
-    });
-  }, [filteredMonthlySpend]);
-
   const tooltipStyle = {
     background: "hsl(var(--card))",
     border: "1px solid hsl(var(--border))",
@@ -341,7 +278,7 @@ const TeamReports = () => {
     );
     if (!userData) return chartData.performanceTrend;
     return monthLabels.map((month, i) => {
-      const spend = (userData as any)[months[i]] * 100000;
+      const spend = ((userData as unknown) as Record<string, number>)[months[i]] * 100000;
       return {
         month,
         spend,
@@ -736,7 +673,7 @@ const TeamReports = () => {
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(val: any, name: string) => {
+                  formatter={(val: number, name: string) => {
                     if (
                       name.includes("Spend") ||
                       name.includes("Revenue") ||
@@ -928,10 +865,6 @@ const TeamReports = () => {
             </TableHeader>
             <TableBody>
               {(() => {
-                const leaderTotalPages = Math.max(
-                  1,
-                  Math.ceil(filteredUsers.length / leaderPerPage),
-                );
                 const paginatedUsers = filteredUsers.slice(
                   (leaderPage - 1) * leaderPerPage,
                   leaderPage * leaderPerPage,

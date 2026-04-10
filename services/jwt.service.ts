@@ -83,24 +83,29 @@ const TOKEN_KEY = 'pms-auth-tokens';
 const USER_KEY = 'pms-auth-user';
 
 export const saveTokens = (tokens: AuthTokens): void => {
+  if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, JSON.stringify(tokens));
 };
 
 export const getStoredTokens = (): AuthTokens | null => {
+  if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem(TOKEN_KEY);
   return stored ? JSON.parse(stored) : null;
 };
 
 export const saveUser = (user: User): void => {
+  if (typeof window === 'undefined') return;
   localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
 export const getStoredUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
   const stored = localStorage.getItem(USER_KEY);
   return stored ? JSON.parse(stored) : null;
 };
 
 export const clearAuthStorage = (): void => {
+  if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem('pms-logged-in');

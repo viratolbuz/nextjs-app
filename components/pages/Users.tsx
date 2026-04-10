@@ -38,16 +38,7 @@ import {
   sortRolesByDisplayOrder,
 } from "@/services/appData.service";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Search,
-  Plus,
-  Download,
-  Edit,
-  Trash2,
-  Eye,
-  Users as UsersIcon,
-  LogIn,
-} from "lucide-react";
+import { Search, Plus, CreditCard as Edit, Trash2, Eye, Users as UsersIcon, LogIn } from "lucide-react";
 import PremiumKpiCard, {
   type KpiCardData,
 } from "@/components/shared/PremiumKpiCard";
@@ -57,7 +48,7 @@ import type { User } from "@/services/appData.service";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
 import { useUserStore, generateSignupLink } from "@/store/userStore";
 import { sendInviteEmail } from "@/services/email.service";
-import { Copy, CheckCheck, Loader2, Mail, Link2 } from "lucide-react";
+import { Copy, CheckCheck, Loader as Loader2, Mail, Link2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -315,7 +306,7 @@ const Users = () => {
     setDeleteConfirm(null);
   };
 
-  const exportCSV = () => {
+  const _exportCSV = () => {
     const csv = [
       "Name,Email,Role,Projects,Status,Last Login,Phone",
       ...filtered.map(
@@ -683,7 +674,7 @@ const Users = () => {
               Invite New User
             </DialogTitle>
             <p className="text-[13px] text-muted-foreground mt-1">
-              Send a signup invitation link to the user's email address
+              Send a signup invitation link to the user&apos;s email address
             </p>
           </DialogHeader>
           {!inviteSent ? (

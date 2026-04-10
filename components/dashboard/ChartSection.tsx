@@ -69,7 +69,15 @@ const ChartSection = () => {
     [],
   );
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean;
+    payload?: { name: string; value: number; color: string }[];
+    label?: string;
+  }) => {
     if (!active || !payload) return null;
 
     return (
@@ -77,7 +85,7 @@ const ChartSection = () => {
         <p className="text-sm font-semibold mb-2">{label}</p>
 
         <div className="flex flex-col gap-1">
-          {payload.map((item: any, index: number) => (
+          {payload.map((item, index: number) => (
             <div
               key={index}
               className="flex justify-between items-center gap-6"

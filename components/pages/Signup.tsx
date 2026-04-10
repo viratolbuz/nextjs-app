@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, Eye, EyeOff, Upload, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Moon, Sun, Eye, EyeOff, Upload, CircleCheck as CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useUserStore, parseInviteToken } from '@/store/userStore';
 
@@ -200,7 +201,7 @@ const Signup = () => {
             <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground font-bold text-2xl mx-auto mb-4 font-display">A</div>
             <h1 className="text-[28px] font-display font-bold">Create Your Account</h1>
             <p className="text-sm text-muted-foreground mt-1">Complete your profile to get started</p>
-            <p className="text-[13px] text-primary font-semibold mt-2">You'll be assigned the <strong>{finalRole}</strong> role</p>
+            <p className="text-[13px] text-primary font-semibold mt-2">You&apos;ll be assigned the <strong>{finalRole}</strong> role</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -208,7 +209,7 @@ const Signup = () => {
               <label className="relative cursor-pointer group">
                 <div className="w-20 h-20 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center overflow-hidden group-hover:border-primary transition-colors">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Profile" className="w-full h-full object-cover" />
+                    <Image src={previewUrl} alt="Profile" width={80} height={80} className="w-full h-full object-cover" />
                   ) : (
                     <Upload className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                   )}

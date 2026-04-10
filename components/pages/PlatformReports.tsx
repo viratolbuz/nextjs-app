@@ -170,7 +170,7 @@ const PlatformReports = () => {
     sortKey === k ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const filteredPlatforms = useMemo(() => {
-    let list =
+    const list =
       selectedPlatforms.length > 0
         ? platforms.filter((p) => selectedPlatforms.includes(p.name))
         : platforms;
@@ -310,8 +310,9 @@ const PlatformReports = () => {
       const platformName = entry.platform;
       if (platformName in rows[rowIdx]) {
         const valueInLakhs = entry.spend / 100000;
-        const current = Number((rows[rowIdx] as any)[platformName] ?? 0);
-        (rows[rowIdx] as any)[platformName] = current + valueInLakhs;
+        const row = rows[rowIdx] as unknown as Record<string, number>;
+        const current = Number(row[platformName] ?? 0);
+        row[platformName] = current + valueInLakhs;
         rows[rowIdx].total += valueInLakhs;
       }
     });
@@ -322,7 +323,7 @@ const PlatformReports = () => {
       ...Object.fromEntries(
         filteredPlatformDetails.map((p) => [
           p.name,
-          Number((Number((row as any)[p.name] ?? 0)).toFixed(2)),
+          Number((Number(((row as unknown as Record<string, number>)[p.name]) ?? 0)).toFixed(2)),
         ]),
       ),
     }));
@@ -354,26 +355,6 @@ const PlatformReports = () => {
     [monthlyAgg],
   );
 
-  const quarterlyGrouped = useMemo(() => {
-    const quarters = [
-      { label: "Q1 (Apr-Jun 2025)", keys: ["apr", "may", "jun"] as const },
-      { label: "Q2 (Jul-Sep 2025)", keys: ["jul", "aug", "sep"] as const },
-      { label: "Q3 (Oct-Dec 2025)", keys: ["oct", "nov", "dec"] as const },
-      { label: "Q4 (Jan-Mar 2026)", keys: ["jan", "feb", "mar"] as const },
-    ];
-    return quarters.map((q) => {
-      const entry: Record<string, any> = { quarter: q.label };
-      let total = 0;
-      filteredPlatformDetails.forEach((p) => {
-        const val = q.keys.reduce((sum, k) => sum + (p[k] as number), 0);
-        entry[p.name] = parseFloat(val.toFixed(2));
-        total += val;
-      });
-      entry.total = parseFloat(total.toFixed(2));
-      return entry;
-    });
-  }, [filteredPlatformDetails]);
-
   const tooltipStyle = {
     background: "hsl(var(--card))",
     border: "1px solid hsl(var(--border))",
@@ -381,12 +362,6 @@ const PlatformReports = () => {
     boxShadow: "0 8px 32px hsl(var(--foreground) / 0.1)",
   };
   const formatCurrency = (val: number) => formatAmountFromLakhs(val);
-
-  const budgetData = filteredPlatforms.map((p) => ({
-    name: p.name.replace(" Ads", ""),
-    budget: parseFloat(p.spendMTD.replace(/[₹L]/g, "")) * 1.15,
-    actual: parseFloat(p.spendMTD.replace(/[₹L]/g, "")),
-  }));
 
   const detailData = useMemo(() => {
     if (!detailPlatform) return null;
@@ -576,7 +551,7 @@ const PlatformReports = () => {
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  formatter={(val: any, name: string) => [
+                  formatter={(val: number, name: string) => [
                     formatCurrency(val),
                     name,
                   ]}

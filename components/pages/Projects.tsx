@@ -29,25 +29,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import {
   projects as allProjects,
   users,
   platforms,
 } from "@/services/appData.service";
-import {
-  Search,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  FolderKanban,
-  AlertTriangle,
-  CheckCircle,
-  PauseCircle,
-  Minus,
-} from "lucide-react";
+import { Search, Plus, CreditCard as Edit, Trash2, Eye, FolderKanban, CircleCheck as CheckCircle, CirclePause as PauseCircle, Minus } from "lucide-react";
 import {
   GroupedFiltersPopover,
   type FilterSelections,
@@ -358,7 +346,7 @@ const Projects = () => {
     setDeleteConfirm(null);
   };
 
-  const exportCSV = () => {
+  const _exportCSV = () => {
     const csv = [
       "Name,Client,Type,Platform(s),Manager,Budget,Spent%,Status,Created",
       ...filtered.map(
@@ -935,7 +923,7 @@ const Projects = () => {
                                         ...x,
                                         accountIds: x.accountIds.map((a, k) =>
                                           k === ai
-                                            ? { ...a, status: v as any }
+                                            ? { ...a, status: v as "Active" | "Inactive" }
                                             : a,
                                         ),
                                       }
@@ -990,7 +978,7 @@ const Projects = () => {
                 <Select
                   value={formData.status}
                   onValueChange={(v) =>
-                    setFormData((f) => ({ ...f, status: v as any }))
+                    setFormData((f) => ({ ...f, status: v as Project["status"] }))
                   }
                 >
                   <SelectTrigger>

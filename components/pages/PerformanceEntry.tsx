@@ -13,7 +13,7 @@ import {
   projects,
   platforms,
 } from '@/services/appData.service';
-import { Search, Plus, Upload, Download, Edit, Trash2, Eye, FileDown } from 'lucide-react';
+import { Search, Plus, Upload, CreditCard as Edit, Trash2, Eye, FileDown } from 'lucide-react';
 import type { PerformanceEntry } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
@@ -31,7 +31,7 @@ const generateEntries = (): PerformanceEntry[] => {
       const monthCount = 3 + Math.floor(Math.random() * 4);
       for (let m = 0; m < monthCount; m++) {
         const year = years[Math.random() > 0.5 ? 1 : 0];
-        const month = months[Math.floor(Math.random() * 12)];
+        const _month = months[Math.floor(Math.random() * 12)];
         const spend = Math.round(5000 + Math.random() * 400000);
         const leads = Math.floor(Math.random() * 3000);
         const cpl = leads > 0 ? Math.round(spend / leads) : 0;
@@ -124,7 +124,7 @@ const PerformanceEntryPage = () => {
   };
   const deleteEntry = (id: string) => { setEntries(prev => prev.filter(e => e.id !== id)); setDeleteConfirm(null); };
 
-  const exportCSV = () => {
+  const _exportCSV = () => {
     const csv = ['Project,Project Type,Client,Platform,Spend,Leads,CPL,Revenue,ROAS,Year,Month,Status',
       ...filtered.map(e => {
         const proj = projects.find(p => p.name === e.project);

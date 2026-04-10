@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface KpiCardData {
@@ -142,7 +142,7 @@ const PremiumKpiCard = ({ card, index = 0 }: PremiumKpiCardProps) => {
   const accent = card.accent || defaultAccents[index % defaultAccents.length]!;
   const styles = accentStyles[accent];
   const Icon = card.icon;
-  const trendPositive = card.trend !== undefined ? card.trend >= 0 : undefined;
+  const _trendPositive = card.trend !== undefined ? card.trend >= 0 : undefined;
 
   return (
     <Card

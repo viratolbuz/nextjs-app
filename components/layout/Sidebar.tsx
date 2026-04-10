@@ -12,9 +12,7 @@ import {
   Shield,
   Globe,
   FolderKanban,
-  BarChart3,
   FileText,
-  TrendingUp,
   Settings,
   LogOut,
   ChevronLeft,
@@ -22,12 +20,13 @@ import {
   ChevronDown,
   Puzzle,
 } from "lucide-react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NavItem {
   path?: string;
   label: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   type?: 'group';
   children?: NavItem[];
   permKey?: string;
@@ -80,7 +79,7 @@ export const Sidebar = ({ className, onNavigate, inDrawer }: SidebarProps) => {
   const activeLayoutId = inDrawer ? "sidebar-active-drawer" : "sidebar-active-desktop";
   const [openGroups, setOpenGroups] = useState<string[]>(["Management"]);
   const pathname = usePathname();
-  const { currentUser, proxyUser, logout, exitProxy } = useAuth();
+  const { currentUser, proxyUser, logout } = useAuth();
   const { canView, isSuperAdmin } = usePermissions();
 
   const activeUser = proxyUser || currentUser;

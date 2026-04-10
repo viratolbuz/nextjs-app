@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GroupedFiltersPopover, type FilterSelections } from '@/components/shared/GroupedFiltersPopover';
 import { platforms as allPlatforms, projects } from '@/services/appData.service';
-import { Search, Plus, Edit, Trash2, Globe, Eye, Plug, PlugZap, Calendar, User, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Search, Plus, CreditCard as Edit, Trash2, Globe, Eye, Plug, PlugZap, Calendar, User, CircleCheck as CheckCircle, TriangleAlert as AlertTriangle, Circle as XCircle } from 'lucide-react';
 import PremiumKpiCard, { type KpiCardData } from '@/components/shared/PremiumKpiCard';
 import type { Platform } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
@@ -252,7 +252,7 @@ const Platforms = () => {
             </div>
             <div>
               <label className="text-[14px] font-bold mb-1 block">Status</label>
-              <Select value={formData.status} onValueChange={v => setFormData(f => ({ ...f, status: v as any }))}>
+              <Select value={formData.status} onValueChange={v => setFormData(f => ({ ...f, status: v as Platform['status'] }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Connected">Connected</SelectItem>

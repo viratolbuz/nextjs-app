@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 interface Tab {
   key: string;
@@ -82,7 +82,7 @@ const GlassTabs = ({ tabs, activeTab, onChange }: Props) => {
       {tabs.map((tab, i) => {
         const Icon = tab.icon;
         const isActive = tab.key === activeTab;
-        const isHovered = hoverIndicator && !isActive;
+        const _isHovered = hoverIndicator && !isActive;
         return (
           <button
             key={tab.key}
