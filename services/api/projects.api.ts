@@ -61,6 +61,7 @@ export const projectsApi = {
       type: data.type || '',
       platforms: data.platforms || [],
       manager: data.manager || '',
+      user: data.user || '',
       budget: data.budget || '₹0',
       budgetUsed: 0,
       status: data.status || 'Active',

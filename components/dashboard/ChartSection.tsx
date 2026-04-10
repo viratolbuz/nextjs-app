@@ -18,7 +18,7 @@ import {
 import { formatAmountFromLakhs } from "@/lib/amount";
 
 const ChartSection = () => {
-  const { state, formatRangeSpan, presetLabel, adjustLabel } = useDateRange();
+  const { state, formatRangeSpan: _formatRangeSpan, presetLabel: _presetLabel, adjustLabel: _adjustLabel } = useDateRange();
   const { hiddenSeries, toggleSeries } = useHiddenSeries();
 
   const { data: chartSeries, xKey } = useMemo(
