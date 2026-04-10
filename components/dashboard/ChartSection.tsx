@@ -17,8 +17,6 @@ import {
 } from "@/contexts/DateRangeContext";
 import { formatAmountFromLakhs } from "@/lib/amount";
 
-const axisMuted = { fill: "hsl(var(--muted-foreground))", fontSize: 11 };
-
 const ChartSection = () => {
   const { state, formatRangeSpan, presetLabel, adjustLabel } = useDateRange();
   const { hiddenSeries, toggleSeries } = useHiddenSeries();
@@ -123,34 +121,28 @@ const ChartSection = () => {
         </div>
 
         <div className="w-full min-w-0">
+          <div className="flex items-center justify-between px-4 pb-1">
+            <span className="text-[10px] text-muted-foreground">Spend & revenue (₹ L)</span>
+            <span className="text-[10px] text-muted-foreground">Leads, ROAS &amp; CPA</span>
+          </div>
           <DualYAxisScrollableComposedChart
             data={chartSeries}
             dataLength={chartSeries.length}
             granularity={state.adjust}
             heightClassName="h-[260px] sm:h-[320px] md:h-[380px]"
-            railWidthClassName="w-[60px] sm:w-[68px]"
+            railWidthClassName="w-[56px] sm:w-[64px]"
             leftMax={leftMax}
             rightMax={rightMax}
             leftGhostDataKeys={["spend", "revenue", "cpa"]}
             rightGhostDataKeys={["leads", "roas"]}
             leftRail={{
-              tick: { fontSize: 12 },
+              tick: { fontSize: 11 },
               tickFormatter: (v) => formatAmountFromLakhs(Number(v)),
-              label: {
-                value: "Spend & revenue (₹ L)",
-                angle: -90,
-                position: "insideLeft",
-                style: axisMuted,
-              },
+              width: 52,
             }}
             rightRail={{
-              tick: { fontSize: 12 },
-              label: {
-                value: "Leads, ROAS & CPA",
-                angle: 90,
-                position: "insideRight",
-                style: axisMuted,
-              },
+              tick: { fontSize: 11 },
+              width: 52,
             }}
           >
             <CartesianGrid
@@ -159,14 +151,8 @@ const ChartSection = () => {
             />
             <XAxis
               dataKey={xKey}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 11 }}
               stroke="hsl(var(--muted-foreground))"
-              label={{
-                value: "Period",
-                position: "insideBottom",
-                offset: -4,
-                style: axisMuted,
-              }}
             />
             <Tooltip
               wrapperStyle={{ zIndex: 50 }}

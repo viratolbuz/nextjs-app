@@ -22,7 +22,7 @@ export const DUAL_AXIS_CHART_MARGIN = {
   top: 8,
   right: 0,
   left: 0,
-  bottom: 44,
+  bottom: 36,
 } as const;
 
 export type DualAxisRailConfig = {
@@ -128,7 +128,7 @@ export function DualYAxisScrollableComposedChart({
           )}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={chartMargin}>
+            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
               <YAxis
                 yAxisId="left"
                 domain={[0, leftMax]}
@@ -175,7 +175,7 @@ export function DualYAxisScrollableComposedChart({
           )}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={chartMargin}>
+            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
               <YAxis
                 yAxisId="right"
                 orientation="right"
