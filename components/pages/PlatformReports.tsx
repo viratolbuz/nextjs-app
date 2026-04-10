@@ -52,6 +52,7 @@ import {
 import {
   DualYAxisScrollableComposedChart,
   maxFromNumericKeys,
+  sparseXAxisTicks,
 } from "@/components/shared/DualYAxisScrollableComposedChart";
 import { ReportMatrixScrollTable } from "@/components/shared/ReportMatrixScrollTable";
 import { formatReportMonthHeader } from "@/lib/reportTableFormat";
@@ -550,6 +551,7 @@ const PlatformReports = () => {
                   dataKey="period"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
+                  {...sparseXAxisTicks(monthlyAgg as Record<string, unknown>[], "period", 40)}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}

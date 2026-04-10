@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import type { AdjustGranularity } from "@/contexts/DateRangeContext";
 import InteractiveLegend from "@/components/shared/InteractiveLegend";
-import { DualYAxisScrollableComposedChart } from "@/components/shared/DualYAxisScrollableComposedChart";
+import { DualYAxisScrollableComposedChart, sparseXAxisTicks } from "@/components/shared/DualYAxisScrollableComposedChart";
 import { cn } from "@/lib/utils";
 
 export type StatusOverviewRow = {
@@ -68,6 +68,8 @@ export function StatusOverviewSplitChart({
     [],
   );
 
+  const xAxisProps = useMemo(() => sparseXAxisTicks(data as Record<string, unknown>[], "period", 40), [data]);
+
   return (
     <div className={cn("w-full min-w-0", className)}>
       <DualYAxisScrollableComposedChart
@@ -101,6 +103,7 @@ export function StatusOverviewSplitChart({
           dataKey="period"
           tick={AXIS_TICK}
           stroke={AXIS_STROKE}
+          {...xAxisProps}
         />
         <Tooltip contentStyle={tooltipStyle} />
         <Line

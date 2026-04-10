@@ -48,7 +48,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -177,10 +176,10 @@ export const ADJUST_OPTIONS: { id: AdjustGranularity; label: string }[] = [
 /**
  * Allowed adjust options per preset (preset-specific rules override range-length rules).
  *
- * Today / Yesterday          → all 5 disabled
- * This week / Last 7 / Last week → only Daily enabled
- * Last 14 / This month / Last 30 → Daily + Weekly enabled
- * Last month / All time / Custom  → use date-range-length rules (Rule 2)
+ * Today / Yesterday          → all disabled
+ * This week / Last 7 / Last week → Daily + Weekly (≤365d so both enabled)
+ * Last 14 / This month / Last 30 → Daily + Weekly
+ * Last month / All time / Custom  → use date-range-length rules
  */
 export function getAllowedAdjustForPreset(
   preset: DatePreset,
@@ -200,25 +199,9 @@ export function getAllowedAdjustForPreset(
     case "thisWeek":
     case "last7":
     case "lastWeek":
-      return {
-        daily: true,
-        weekly: false,
-        monthly: false,
-        quarterly: false,
-        yearly: false,
-      };
-
     case "last14":
     case "thisMonth":
     case "last30":
-      return {
-        daily: true,
-        weekly: true,
-        monthly: false,
-        quarterly: false,
-        yearly: false,
-      };
-
     case "lastMonth":
     case "allTime":
     case "custom":
@@ -228,55 +211,44 @@ export function getAllowedAdjustForPreset(
 }
 
 /**
- * Rule 2 – date-range-length based enable/disable:
- * 1–7 days   → Daily only
- * 8–30 days  → Daily + Weekly
- * 31–90 days → Weekly + Monthly
- * 91–365     → Monthly + Quarterly
- * >365       → Quarterly + Yearly
+ * Granularity rules based on date range length:
+ * - Daily:     enabled when ≤ 365 days
+ * - Weekly:    enabled when ≤ 365 days
+ * - Monthly:   enabled when > 31 days  (no upper limit)
+ * - Quarterly: enabled when > 93 days  (no upper limit)
+ * - Yearly:    enabled when ≥ 365 days (no upper limit)
  */
 export function getAllowedAdjustForDateRange(
   range: DateRangeValue,
 ): Record<AdjustGranularity, boolean> {
   const days = differenceInDays(range.to, range.from) + 1;
-  if (days <= 7)
-    return {
-      daily: true,
-      weekly: false,
-      monthly: false,
-      quarterly: false,
-      yearly: false,
-    };
-  if (days <= 30)
-    return {
-      daily: true,
-      weekly: true,
-      monthly: false,
-      quarterly: false,
-      yearly: false,
-    };
-  if (days <= 90)
-    return {
-      daily: false,
-      weekly: true,
-      monthly: true,
-      quarterly: false,
-      yearly: false,
-    };
-  if (days <= 365)
-    return {
-      daily: false,
-      weekly: false,
-      monthly: true,
-      quarterly: true,
-      yearly: false,
-    };
   return {
-    daily: false,
-    weekly: false,
-    monthly: false,
-    quarterly: true,
-    yearly: true,
+    daily: days <= 365,
+    weekly: days <= 365,
+    monthly: days > 31,
+    quarterly: days > 93,
+    yearly: days >= 365,
+  };
+}
+
+/**
+ * Returns which granularity options should be visible in the dropdown.
+ * Options below their threshold are hidden entirely rather than shown disabled.
+ * - Monthly:   visible when > 31 days
+ * - Quarterly: visible when > 93 days
+ * - Yearly:    visible when ≥ 365 days
+ * - Daily/Weekly: always visible
+ */
+export function getVisibleAdjustOptions(
+  range: DateRangeValue,
+): Record<AdjustGranularity, boolean> {
+  const days = differenceInDays(range.to, range.from) + 1;
+  return {
+    daily: true,
+    weekly: true,
+    monthly: days > 31,
+    quarterly: days > 93,
+    yearly: days >= 365,
   };
 }
 
@@ -338,19 +310,19 @@ const INITIAL_SCOPES: ScopeKey[] = [
 
 export function DateRangeProvider({ children }: { children: React.ReactNode }) {
   const [scoped, setScoped] = useState<Record<string, ScopeState>>(() =>
-  Object.fromEntries(
-    INITIAL_SCOPES.map((k) => [
-      k,
-      k === "projects"
-        ? {
-            preset: "allTime",
-            range: getRangeFromPreset("allTime"),
-            adjust: "quarterly",
-          }
-        : defaultScopeState(),
-    ])
-  )
-);
+    Object.fromEntries(
+      INITIAL_SCOPES.map((k) => [
+        k,
+        k === "projects"
+          ? {
+              preset: "allTime",
+              range: getRangeFromPreset("allTime"),
+              adjust: "quarterly",
+            }
+          : defaultScopeState(),
+      ]),
+    ),
+  );
 
   const setPreset = (scope: string, preset: DatePreset) => {
     setScoped((prev) => {
@@ -434,6 +406,164 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
   };
 }
 
+/**
+ * Segmented numeric date input: DD / MM / YYYY
+ * - Typing digits updates in real time
+ * - ArrowUp/ArrowDown increments/decrements each segment with proper bounds
+ * - DD wraps within valid days for the current month/year
+ * - MM clamps 1–12
+ * - YYYY clamps to minYear–maxYear (defaults 2022–today's year)
+ */
+function DateSegmentInput({
+  value,
+  onChange,
+  onFocus,
+  maxDate,
+  minYear = 2022,
+}: {
+  value: Date;
+  onChange: (d: Date) => void;
+  onFocus?: () => void;
+  maxDate?: Date;
+  minYear?: number;
+}) {
+  const maxYear = maxDate ? maxDate.getFullYear() : new Date().getFullYear();
+
+  const [dd, setDd] = useState(format(value, "dd"));
+  const [mm, setMm] = useState(format(value, "MM"));
+  const [yyyy, setYyyy] = useState(format(value, "yyyy"));
+
+  // Sync segments when value changes externally (e.g. calendar click)
+  useEffect(() => {
+    setDd(format(value, "dd"));
+    setMm(format(value, "MM"));
+    setYyyy(format(value, "yyyy"));
+  }, [value]);
+
+  const daysInMonth = (month: number, year: number) =>
+    new Date(year, month, 0).getDate(); // month is 1-based here
+
+  const tryEmit = (newDd: string, newMm: string, newYyyy: string) => {
+    const d = Number(newDd);
+    const m = Number(newMm);
+    const y = Number(newYyyy);
+    if (!d || !m || y < minYear || y > maxYear) return;
+    const candidate = new Date(y, m - 1, d);
+    if (
+      candidate.getFullYear() === y &&
+      candidate.getMonth() === m - 1 &&
+      candidate.getDate() === d
+    ) {
+      // Clamp to maxDate
+      const clamped = maxDate && candidate > maxDate ? maxDate : candidate;
+      onChange(clamped);
+    }
+  };
+
+  const handleDd = (v: string) => {
+    const clean = v.replace(/\D/g, "").slice(0, 2);
+    setDd(clean);
+    tryEmit(clean, mm, yyyy);
+  };
+  const handleMm = (v: string) => {
+    const clean = v.replace(/\D/g, "").slice(0, 2);
+    setMm(clean);
+    tryEmit(dd, clean, yyyy);
+  };
+  const handleYyyy = (v: string) => {
+    const clean = v.replace(/\D/g, "").slice(0, 4);
+    setYyyy(clean);
+    tryEmit(dd, mm, clean);
+  };
+
+  const handleKeyDown = (
+    seg: "dd" | "mm" | "yyyy",
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    e.preventDefault();
+    const dir = e.key === "ArrowUp" ? 1 : -1;
+
+    const curDd = Number(dd) || 1;
+    const curMm = Number(mm) || 1;
+    const curYyyy = Number(yyyy) || new Date().getFullYear();
+
+    if (seg === "dd") {
+      const maxDay = daysInMonth(curMm, curYyyy);
+      let next = curDd + dir;
+      if (next < 1) next = maxDay;
+      if (next > maxDay) next = 1;
+      const s = String(next).padStart(2, "0");
+      setDd(s);
+      tryEmit(s, mm, yyyy);
+    } else if (seg === "mm") {
+      let next = curMm + dir;
+      if (next < 1) next = 12;
+      if (next > 12) next = 1;
+      const s = String(next).padStart(2, "0");
+      setMm(s);
+      // Clamp day to new month's max
+      const maxDay = daysInMonth(next, curYyyy);
+      const clampedDd = Math.min(curDd, maxDay);
+      const ddS = String(clampedDd).padStart(2, "0");
+      setDd(ddS);
+      tryEmit(ddS, s, yyyy);
+    } else {
+      let next = curYyyy + dir;
+      if (next < minYear) next = minYear;
+      if (next > maxYear) next = maxYear;
+      const s = String(next);
+      setYyyy(s);
+      // Clamp day to new year's month max (handles Feb in leap years)
+      const maxDay = daysInMonth(curMm, next);
+      const clampedDd = Math.min(curDd, maxDay);
+      const ddS = String(clampedDd).padStart(2, "0");
+      setDd(ddS);
+      tryEmit(ddS, mm, s);
+    }
+  };
+
+  const segCls =
+    "w-[2.2rem] text-center border-0 border-b border-border bg-transparent p-0 text-sm focus:outline-none focus:border-primary focus:ring-0 tabular-nums";
+
+  return (
+    <div
+      className="flex items-center gap-0.5 rounded-md border border-input bg-background px-2 py-1 text-sm focus-within:ring-1 focus-within:ring-ring"
+      onFocus={onFocus}
+    >
+      <input
+        className={segCls}
+        value={dd}
+        onChange={(e) => handleDd(e.target.value)}
+        onKeyDown={(e) => handleKeyDown("dd", e)}
+        placeholder="DD"
+        inputMode="numeric"
+        maxLength={2}
+      />
+      <span className="text-muted-foreground select-none">/</span>
+      <input
+        className={segCls}
+        value={mm}
+        onChange={(e) => handleMm(e.target.value)}
+        onKeyDown={(e) => handleKeyDown("mm", e)}
+        placeholder="MM"
+        inputMode="numeric"
+        maxLength={2}
+      />
+      <span className="text-muted-foreground select-none">/</span>
+      <input
+        className={cn(segCls, "w-[3rem]")}
+        value={yyyy}
+        onChange={(e) => handleYyyy(e.target.value)}
+        onKeyDown={(e) => handleKeyDown("yyyy", e)}
+        placeholder="YYYY"
+        inputMode="numeric"
+        maxLength={4}
+      />
+    </div>
+  );
+}
+
 export function DateRangePicker({
   className,
   compact,
@@ -448,10 +578,26 @@ export function DateRangePicker({
   const [activeInput, setActiveInput] = useState<"from" | "to">("from");
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
   const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [draftRange, setDraftRange] = useState<{ from: Date; to: Date }>(
+    state.range,
+  );
 
   useEffect(() => {
-    setYear(String(state.range.from.getFullYear()));
-  }, [state.range.from, open]);
+    if (open) {
+      setDraftRange(state.range);
+      setYear(String(state.range.from.getFullYear()));
+    }
+  }, [open]);
+
+  useEffect(() => {
+    setYear(String(draftRange.from.getFullYear()));
+  }, [draftRange.from]);
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, []);
 
   const years = useMemo(() => {
     const current = new Date().getFullYear();
@@ -460,20 +606,17 @@ export function DateRangePicker({
     return list;
   }, []);
 
-  const parsedFrom = format(state.range.from, "yyyy-MM-dd");
-  const parsedTo = format(state.range.to, "yyyy-MM-dd");
-
   const previewRange = useMemo(() => {
-    if (!hoverDate) return { from: state.range.from, to: state.range.to };
+    if (!hoverDate) return { from: draftRange.from, to: draftRange.to };
     if (activeInput === "from") {
-      if (isAfter(hoverDate, state.range.to))
+      if (isAfter(hoverDate, draftRange.to))
         return { from: hoverDate, to: hoverDate };
-      return { from: hoverDate, to: state.range.to };
+      return { from: hoverDate, to: draftRange.to };
     }
-    if (isBefore(hoverDate, state.range.from))
-      return { from: hoverDate, to: state.range.from };
-    return { from: state.range.from, to: hoverDate };
-  }, [activeInput, hoverDate, state.range.from, state.range.to]);
+    if (isBefore(hoverDate, draftRange.from))
+      return { from: hoverDate, to: draftRange.from };
+    return { from: draftRange.from, to: hoverDate };
+  }, [activeInput, hoverDate, draftRange.from, draftRange.to]);
 
   const monthStarts = useMemo(() => {
     const selectedYear = Number(year);
@@ -485,20 +628,21 @@ export function DateRangePicker({
     return items;
   }, [year]);
 
-  const updateDateByInput = (key: "from" | "to", value: string) => {
-    const parsed = parse(value, "yyyy-MM-dd", new Date());
-    if (Number.isNaN(parsed.getTime())) return;
-    const next = { ...state.range, [key]: parsed };
-    if (isAfter(next.from, next.to)) {
-      if (key === "from") next.to = parsed;
-      else next.from = parsed;
-    }
-    setCustomRange(next);
+  const updateFrom = (d: Date) => {
+    const next = { from: d, to: draftRange.to };
+    if (isAfter(d, draftRange.to)) next.to = d;
+    setDraftRange(next);
+  };
+
+  const updateTo = (d: Date) => {
+    const next = { from: draftRange.from, to: d };
+    if (isBefore(d, draftRange.from)) next.from = d;
+    setDraftRange(next);
   };
 
   const onSelectDate = (day?: Date) => {
     if (!day) return;
-    const next = { ...state.range };
+    const next = { ...draftRange };
     if (activeInput === "from") {
       next.from = day;
       if (isAfter(next.from, next.to)) next.to = day;
@@ -507,20 +651,36 @@ export function DateRangePicker({
       next.to = day;
       if (isBefore(next.to, next.from)) next.from = day;
     }
-    setCustomRange(next);
+    setDraftRange(next);
     setHoverDate(undefined);
   };
 
+  const handleApply = () => {
+    setCustomRange(draftRange);
+    setOpen(false);
+  };
+
+  const handleCancel = () => {
+    setDraftRange(state.range);
+    setOpen(false);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) handleCancel();
+        else setOpen(true);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" className={cn("justify-start", className)}>
           {compact
             ? presetLabel
-            : `${presetLabel}: ${format(state.range.from, "dd MMM")} - ${format(state.range.to, "dd MMM")}`}
+            : `${format(state.range.from, "dd MMM yyyy")} – ${format(state.range.to, "dd MMM yyyy")}`}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[550px] p-0">
+      <PopoverContent align="end" className="w-[570px] p-0">
         <div className="grid grid-cols-[220px_1fr]">
           <div className="border-r p-2">
             {PRESET_LIST.map((preset) => (
@@ -532,36 +692,44 @@ export function DateRangePicker({
                   state.preset === preset.id && "bg-muted font-medium",
                 )}
                 onClick={() => {
-                  setPreset(preset.id);
-                  if (preset.id !== "custom") setOpen(false);
+                  if (preset.id !== "custom") {
+                    setPreset(preset.id);
+                    setOpen(false);
+                  } else {
+                    setPreset(preset.id);
+                    setDraftRange(state.range);
+                  }
                 }}
               >
                 {preset.label}
               </button>
             ))}
           </div>
-
-          <div className="p-3">
-            <div className="flex flex-col gap-3 w-full">
+          <div className="w-full p-3">
+            <div className="flex flex-col gap-3">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground">
-                    Start date*
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    Start date{" "}
                   </label>
-                  <Input
-                    value={parsedFrom}
+                  <DateSegmentInput
+                    value={draftRange.from}
+                    onChange={updateFrom}
                     onFocus={() => setActiveInput("from")}
-                    onChange={(e) => updateDateByInput("from", e.target.value)}
+                    maxDate={today}
+                    minYear={2022}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground">
-                    End date*
+                  <label className="text-xs text-muted-foreground mb-1 block">
+                    End date{" "}
                   </label>
-                  <Input
-                    value={parsedTo}
+                  <DateSegmentInput
+                    value={draftRange.to}
+                    onChange={updateTo}
                     onFocus={() => setActiveInput("to")}
-                    onChange={(e) => updateDateByInput("to", e.target.value)}
+                    maxDate={today}
+                    minYear={2022}
                   />
                 </div>
               </div>
@@ -596,6 +764,7 @@ export function DateRangePicker({
                           numberOfMonths={1}
                           month={monthStart}
                           selected={previewRange}
+                          disabled={{ after: new Date() }}
                           onDayMouseEnter={(day) => setHoverDate(day)}
                           onDayMouseLeave={() => setHoverDate(undefined)}
                           onDayClick={(day) => onSelectDate(day)}
@@ -605,6 +774,15 @@ export function DateRangePicker({
                     ))}
                   </div>
                 </ScrollArea>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="ghost" size="sm" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleApply}>
+                  Apply
+                </Button>
               </div>
             </div>
           </div>
@@ -646,7 +824,8 @@ export function AdjustGranularityDropdown({
               disabled={!allowed}
               className={cn(
                 state.adjust === opt.id && "bg-muted",
-                !allowed && "text-muted-foreground opacity-50",
+                !allowed &&
+                  "text-muted-foreground opacity-40 cursor-not-allowed",
               )}
               onClick={() => allowed && setAdjust(opt.id)}
             >

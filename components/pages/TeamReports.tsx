@@ -54,6 +54,7 @@ import {
 import {
   DualYAxisScrollableComposedChart,
   maxFromNumericKeys,
+  sparseXAxisTicks,
 } from "@/components/shared/DualYAxisScrollableComposedChart";
 import { ReportMatrixScrollTable } from "@/components/shared/ReportMatrixScrollTable";
 import { formatReportMonthHeader } from "@/lib/reportTableFormat";
@@ -405,6 +406,7 @@ const TeamReports = () => {
                       angle={-45}
                       textAnchor="end"
                       height={60}
+                      {...sparseXAxisTicks(proxyUserChartData as Record<string, unknown>[], "month", 40)}
                     />
                     <Tooltip contentStyle={tooltipStyle} />
                     <Legend />
@@ -696,6 +698,7 @@ const TeamReports = () => {
                   dataKey="period"
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
+                  {...sparseXAxisTicks(monthlyAgg as Record<string, unknown>[], "period", 40)}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}

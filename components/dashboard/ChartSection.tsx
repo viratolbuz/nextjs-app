@@ -9,6 +9,7 @@ import InteractiveLegend, {
 import {
   DualYAxisScrollableComposedChart,
   maxFromNumericKeys,
+  sparseXAxisTicks,
 } from "@/components/shared/DualYAxisScrollableComposedChart";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -39,6 +40,11 @@ const ChartSection = () => {
   const rightMax = useMemo(
     () => maxFromNumericKeys(chartSeries, ["leads", "roas"], 1, 1.08),
     [chartSeries],
+  );
+
+  const xAxisProps = useMemo(
+    () => sparseXAxisTicks(chartSeries, xKey, 40),
+    [chartSeries, xKey],
   );
 
   const formatValue = (value: number, name: string) => {
@@ -146,6 +152,7 @@ const ChartSection = () => {
               dataKey={xKey}
               tick={{ fontSize: 11 }}
               stroke="hsl(var(--muted-foreground))"
+              {...xAxisProps}
             />
             <Tooltip
               wrapperStyle={{ zIndex: 50 }}
@@ -157,7 +164,8 @@ const ChartSection = () => {
               dataKey="spend"
               stroke="hsl(var(--metric-spend))"
               strokeWidth={2.5}
-              dot={{ r: 4 }}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--metric-spend))", fill: "hsl(var(--background))" }}
               name="Spend (₹)"
               hide={hiddenSeries.has("Spend (₹)")}
             />
@@ -168,6 +176,8 @@ const ChartSection = () => {
               stroke="hsl(var(--metric-revenue))"
               fill="hsl(var(--metric-revenue) / 0.15)"
               strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--metric-revenue))", fill: "hsl(var(--background))" }}
               name="Revenue (₹)"
               hide={hiddenSeries.has("Revenue (₹)")}
             />
@@ -177,7 +187,8 @@ const ChartSection = () => {
               dataKey="leads"
               stroke="hsl(var(--metric-leads))"
               strokeWidth={2}
-              dot={{ r: 3 }}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--metric-leads))", fill: "hsl(var(--background))" }}
               name="Leads/Conversion"
               hide={hiddenSeries.has("Leads/Conversion")}
             />
@@ -187,7 +198,8 @@ const ChartSection = () => {
               dataKey="roas"
               stroke="hsl(var(--metric-roas))"
               strokeWidth={2}
-              dot={{ r: 3 }}
+              dot={false}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "hsl(var(--metric-roas))", fill: "hsl(var(--background))" }}
               name="ROAS Ratio"
               hide={hiddenSeries.has("ROAS Ratio")}
             />
@@ -198,7 +210,8 @@ const ChartSection = () => {
               stroke="hsl(var(--metric-cpa))"
               strokeWidth={1.5}
               strokeDasharray="5 5"
-              dot={{ r: 2 }}
+              dot={false}
+              activeDot={{ r: 4, strokeWidth: 2, stroke: "hsl(var(--metric-cpa))", fill: "hsl(var(--background))" }}
               name="CPA (₹)"
               hide={hiddenSeries.has("CPA (₹)")}
             />

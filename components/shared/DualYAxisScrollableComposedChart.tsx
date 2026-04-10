@@ -1,16 +1,12 @@
 "use client";
 
 import {
-  useLayoutEffect,
   useMemo,
-  useRef,
-  type CSSProperties,
   type ReactNode,
 } from "react";
 import { ComposedChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import type { YAxisProps } from "recharts";
 import type { AdjustGranularity } from "@/contexts/DateRangeContext";
-import { scrollablePlotAreaInnerStyle } from "@/components/shared/TimeSeriesChartScroll";
 import { cn } from "@/lib/utils";
 
 export const DUAL_AXIS_CHART_MARGIN = {
@@ -54,13 +50,14 @@ function GhostLines({
 }
 
 /**
- * Fixed left/right Y-axes with a horizontally scrollable center plot (grid, X-axis,
- * series). Matches Highcharts-style scrollable plot + sticky rails for Recharts.
+ * Full-width non-scrollable dual Y-axis chart.
+ * When dataLength > 40, the X-axis shows only the first and last tick labels.
+ * All data points are still rendered — only the axis labels are thinned.
  */
 export function DualYAxisScrollableComposedChart({
   data,
   dataLength,
-  granularity,
+  granularity: _granularity,
   heightClassName = "h-[400px]",
   className,
   frameClassName,
@@ -72,7 +69,6 @@ export function DualYAxisScrollableComposedChart({
   rightRail,
   railWidthClassName = "w-[52px] sm:w-[60px]",
   chartMargin = DUAL_AXIS_CHART_MARGIN,
-  scrollToEnd = true,
   children,
 }: {
   data: Record<string, unknown>[];
@@ -80,7 +76,6 @@ export function DualYAxisScrollableComposedChart({
   granularity: AdjustGranularity;
   heightClassName?: string;
   className?: string;
-  /** Optional border/radius on the flex frame (e.g. Status-style card). */
   frameClassName?: string;
   leftMax: number;
   rightMax: number;
@@ -90,22 +85,11 @@ export function DualYAxisScrollableComposedChart({
   rightRail: DualAxisRailConfig;
   railWidthClassName?: string;
   chartMargin?: { top: number; right: number; left: number; bottom: number };
+  /** @deprecated no longer used — kept for API compatibility */
   scrollToEnd?: boolean;
   children: ReactNode;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const pointCount = Math.max(1, data.length, dataLength);
-  const centerInnerStyle = useMemo(
-    () => scrollablePlotAreaInnerStyle(pointCount, granularity),
-    [pointCount, granularity],
-  );
-
-  useLayoutEffect(() => {
-    if (!scrollToEnd) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
-  }, [scrollToEnd, dataLength, granularity, pointCount]);
 
   const frame = cn(
     "flex w-full min-w-0 max-w-full overflow-hidden bg-card",
@@ -115,18 +99,10 @@ export function DualYAxisScrollableComposedChart({
   return (
     <div className={cn("w-full min-w-0", className)}>
       <div className={frame}>
-        <div
-          className={cn(
-            "shrink-0 bg-card",
-            railWidthClassName,
-            heightClassName,
-          )}
-        >
+        {/* Left Y-axis rail */}
+        <div className={cn("shrink-0 bg-card", railWidthClassName, heightClassName)}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={data}
-              margin={{ ...chartMargin, left: 0, right: 0 }}
-            >
+            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
               <YAxis
                 yAxisId="left"
                 domain={[0, leftMax]}
@@ -141,45 +117,21 @@ export function DualYAxisScrollableComposedChart({
           </ResponsiveContainer>
         </div>
 
-        <div
-          ref={scrollRef}
-          className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-themed"
-          style={{ WebkitOverflowScrolling: "touch" } as CSSProperties}
-        >
-          <div
-            className={cn("min-h-0", heightClassName)}
-            style={centerInnerStyle}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart
-                data={data}
-                margin={{ top: 0, right: 0, left: 0, bottom: 6 }}
-              >
-                <YAxis yAxisId="left" hide domain={[0, leftMax]} />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  hide
-                  domain={[0, rightMax]}
-                />
-                {children}
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+        {/* Center plot — full width, no scroll */}
+        <div className={cn("min-h-0 min-w-0 flex-1", heightClassName)}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{ top: 0, right: 0, left: 0, bottom: 6 }}>
+              <YAxis yAxisId="left" hide domain={[0, leftMax]} />
+              <YAxis yAxisId="right" orientation="right" hide domain={[0, rightMax]} />
+              {children}
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
 
-        <div
-          className={cn(
-            "shrink-0 bg-card",
-            railWidthClassName,
-            heightClassName,
-          )}
-        >
+        {/* Right Y-axis rail */}
+        <div className={cn("shrink-0 bg-card", railWidthClassName, heightClassName)}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              data={data}
-              margin={{ ...chartMargin, left: 0, right: 0 }}
-            >
+            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
               <YAxis
                 yAxisId="right"
                 orientation="right"
@@ -208,4 +160,26 @@ export function maxFromNumericKeys(
   const vals = rows.flatMap((row) => keys.map((k) => Number(row[k]) || 0));
   const m = Math.max(floor, ...vals);
   return m * pad;
+}
+
+/**
+ * Returns XAxis props that show all labels when data ≤ threshold,
+ * or ONLY the first and last label when data > threshold.
+ *
+ * For the sparse case we pass an explicit `ticks` array with just the
+ * first and last value so Recharts renders exactly two tick marks —
+ * no intermediate dots, no intermediate lines.
+ */
+export function sparseXAxisTicks(
+  data: Record<string, unknown>[],
+  xKey: string,
+  threshold = 40,
+): { interval: number; ticks?: (string | number)[] } {
+  if (data.length <= threshold) {
+    return { interval: 0 };
+  }
+  const first = data[0]?.[xKey] as string | number;
+  const last  = data[data.length - 1]?.[xKey] as string | number;
+  // interval={0} with an explicit 2-item ticks array = exactly 2 ticks rendered
+  return { interval: 0, ticks: [first, last] };
 }
