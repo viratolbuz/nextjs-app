@@ -105,30 +105,30 @@ const ChartSection = () => {
   };
 
   return (
-    <Card className="border-border/50 shadow-md">
-      <CardContent className="p-6">
-        <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+    <Card className="border-border/50 shadow-md overflow-hidden">
+      <CardContent className="p-0">
+        <div className="px-4 pt-4 pb-2 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
           <div>
             <h3 className="text-lg font-display font-bold">
               Performance Overview
             </h3>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-0.5">
               <span className="font-medium text-foreground">{presetLabel}</span>
-              <span className="mx-2">·</span>
+              <span className="mx-1.5 opacity-40">·</span>
               {adjustLabel}
-              <span className="mx-2">·</span>
+              <span className="mx-1.5 opacity-40">·</span>
               {formatRangeSpan()}
             </p>
           </div>
         </div>
 
-        <div className="w-full min-w-0 space-y-0">
+        <div className="w-full min-w-0">
           <DualYAxisScrollableComposedChart
             data={chartSeries}
             dataLength={chartSeries.length}
             granularity={state.adjust}
-            heightClassName="h-[280px] sm:h-[340px] md:h-[400px]"
-            railWidthClassName="w-[56px] sm:w-[64px]"
+            heightClassName="h-[260px] sm:h-[320px] md:h-[380px]"
+            railWidthClassName="w-[60px] sm:w-[68px]"
             leftMax={leftMax}
             rightMax={rightMax}
             leftGhostDataKeys={["spend", "revenue", "cpa"]}
@@ -224,11 +224,13 @@ const ChartSection = () => {
               hide={hiddenSeries.has("CPA (₹)")}
             />
           </DualYAxisScrollableComposedChart>
-          <InteractiveLegend
-            payload={chartLegendPayload}
-            hiddenSeries={hiddenSeries}
-            onToggle={toggleSeries}
-          />
+          <div className="px-4 pb-3 pt-1">
+            <InteractiveLegend
+              payload={chartLegendPayload}
+              hiddenSeries={hiddenSeries}
+              onToggle={toggleSeries}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

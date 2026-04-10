@@ -492,9 +492,13 @@ const Users = () => {
                           >
                             {getInitials(u.name)}
                           </div>
-                          <span className="text-sm font-semibold">
+                          <button
+                            className="text-sm font-semibold text-primary hover:underline cursor-pointer text-left"
+                            onClick={() => openProxy(u)}
+                            title={`Proxy login as ${u.name}`}
+                          >
                             {u.name}
-                          </span>
+                          </button>
                         </div>
                       </TableCell>
                       <TableCell className="text-[15px] text-muted-foreground">
@@ -599,7 +603,13 @@ const Users = () => {
                       {getInitials(u.name)}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold">{u.name}</p>
+                      <button
+                        className="text-sm font-bold text-primary hover:underline cursor-pointer text-left"
+                        onClick={() => openProxy(u)}
+                        title={`Proxy login as ${u.name}`}
+                      >
+                        {u.name}
+                      </button>
                       <p className="text-[13px] text-muted-foreground truncate">
                         {u.email}
                       </p>

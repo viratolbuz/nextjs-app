@@ -19,10 +19,10 @@ import { scrollablePlotAreaInnerStyle } from "@/components/shared/TimeSeriesChar
 import { cn } from "@/lib/utils";
 
 export const DUAL_AXIS_CHART_MARGIN = {
-  top: 12,
+  top: 8,
   right: 0,
   left: 0,
-  bottom: 52,
+  bottom: 44,
 } as const;
 
 export type DualAxisRailConfig = {
@@ -94,7 +94,7 @@ export function DualYAxisScrollableComposedChart({
   leftRail: DualAxisRailConfig;
   rightRail: DualAxisRailConfig;
   railWidthClassName?: string;
-  chartMargin?: typeof DUAL_AXIS_CHART_MARGIN;
+  chartMargin?: { top: number; right: number; left: number; bottom: number };
   scrollToEnd?: boolean;
   children: ReactNode;
 }) {
@@ -122,7 +122,7 @@ export function DualYAxisScrollableComposedChart({
       <div className={frame}>
         <div
           className={cn(
-            "shrink-0 border-r border-border bg-card",
+            "shrink-0 bg-card",
             railWidthClassName,
             heightClassName,
           )}
@@ -152,7 +152,7 @@ export function DualYAxisScrollableComposedChart({
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={data}
-                margin={{ ...chartMargin, left: 2, right: 2 }}
+                margin={{ ...chartMargin, left: 0, right: 0 }}
               >
                 <YAxis yAxisId="left" hide domain={[0, leftMax]} />
                 <YAxis
@@ -169,7 +169,7 @@ export function DualYAxisScrollableComposedChart({
 
         <div
           className={cn(
-            "shrink-0 border-l border-border bg-card",
+            "shrink-0 bg-card",
             railWidthClassName,
             heightClassName,
           )}

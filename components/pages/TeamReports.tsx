@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +88,7 @@ type TeamSortKey =
   | "cpa";
 
 const TeamReports = () => {
+  const router = useRouter();
   const { inRange, state, filterEntries } = useDateRange("reports-team");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<TeamSortKey>("spend");
@@ -474,8 +476,13 @@ const TeamReports = () => {
                   <TableBody>
                     {proxyUserProjects.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-medium text-primary">
-                          {p.name}
+                        <TableCell>
+                          <button
+                            className="font-medium text-primary hover:underline cursor-pointer text-left"
+                            onClick={() => router.push(`/projects/${p.id}`)}
+                          >
+                            {p.name}
+                          </button>
                         </TableCell>
                         <TableCell className="text-right">{p.spend}</TableCell>
                         <TableCell className="text-right">
@@ -575,7 +582,14 @@ const TeamReports = () => {
                 <TableBody>
                   {proxyUserProjects.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell>
+                        <button
+                          className="font-medium text-primary hover:underline cursor-pointer text-left"
+                          onClick={() => router.push(`/projects/${p.id}`)}
+                        >
+                          {p.name}
+                        </button>
+                      </TableCell>
                       <TableCell>{p.client}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">{p.type}</Badge>
@@ -629,10 +643,9 @@ const TeamReports = () => {
         ))}
       </div>
 
-      <Card className="border-border/50">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 mb-6">
-            {/* <h3 className="font-display font-semibold text-lg">Team Reports - 2026</h3> */}
+      <Card className="border-border/50 overflow-hidden">
+        <CardContent className="p-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 px-4 pt-4 pb-2">
             <div className="flex flex-wrap items-center gap-2">
               <ReportFilters
                 items={users.map((u) => ({ id: u.id, label: u.name }))}
@@ -737,11 +750,13 @@ const TeamReports = () => {
                   hide={hiddenSeries.has("CPA (₹)")}
                 />
             </DualYAxisScrollableComposedChart>
-            <InteractiveLegend
-              payload={teamTrendLegendPayload}
-              hiddenSeries={hiddenSeries}
-              onToggle={toggleSeries}
-            />
+            <div className="px-4 pb-3 pt-1">
+              <InteractiveLegend
+                payload={teamTrendLegendPayload}
+                hiddenSeries={hiddenSeries}
+                onToggle={toggleSeries}
+              />
+            </div>
             </div>
           </div>
             <ReportMatrixScrollTable>
@@ -770,8 +785,13 @@ const TeamReports = () => {
                     key={item.name}
                     className="border-b border-border/50 hover:bg-muted/30"
                   >
-                    <td className="py-2 px-3 text-primary font-medium sticky left-0 z-20 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
-                      {item.name}
+                    <td className="py-2 px-3 sticky left-0 z-20 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
+                      <button
+                        className="text-primary font-medium hover:underline cursor-pointer text-left w-full"
+                        onClick={() => { const u = users.find(x => x.name === item.name); if (u) { setProxyView(u); setProxyTab("report"); } }}
+                      >
+                        {item.name}
+                      </button>
                     </td>
                     {visibleMonthIndexes.map((idx) => {
                       const k = months[idx];
@@ -893,7 +913,12 @@ const TeamReports = () => {
                           <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[13px] font-bold">
                             {u.avatar}
                           </div>
-                          <span className="font-medium">{u.name}</span>
+                          <button
+                            className="font-medium text-primary hover:underline cursor-pointer text-left"
+                            onClick={() => { setProxyView(u); setProxyTab("report"); }}
+                          >
+                            {u.name}
+                          </button>
                         </div>
                       </TableCell>
                       <TableCell>

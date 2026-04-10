@@ -513,7 +513,14 @@ const Projects = () => {
             <TableBody>
               {paginated.map((p) => (
                 <TableRow key={p.id} className="hover:bg-muted/50">
-                  <TableCell className="font-semibold">{p.name}</TableCell>
+                  <TableCell>
+                    <button
+                      className="font-semibold text-primary hover:underline cursor-pointer text-left"
+                      onClick={() => router.push(`/projects/${p.id}`)}
+                    >
+                      {p.name}
+                    </button>
+                  </TableCell>
                   <TableCell className="text-sm">{p.client}</TableCell>
                   <TableCell>
                     <Badge

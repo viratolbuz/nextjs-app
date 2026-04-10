@@ -134,7 +134,7 @@ const getRangeFromPreset = (preset: DatePreset): DateRangeValue => {
       return { from: startOfMonth(lm), to: endOfMonth(lm) };
     }
     case "allTime":
-      return { from: new Date("2024-01-01"), to: now };
+      return { from: new Date("2022-01-01"), to: now };
     case "custom":
       return getTodayRange();
     default:
@@ -306,7 +306,8 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
   const filterEntries = (entries: PerformanceEntry[]) =>
     entries.filter((entry) => {
       try {
-        const parsed = parse(`${entry.date} 2026`, "dd MMM yyyy", new Date());
+        const parsed = parsePerformanceEntryDate(entry.date);
+        if (!parsed) return true;
         return inRange(parsed);
       } catch {
         return true;
@@ -357,7 +358,7 @@ export function DateRangePicker({
   const years = useMemo(() => {
     const current = new Date().getFullYear();
     const list: string[] = [];
-    for (let y = current; y >= current - 4; y -= 1) list.push(String(y));
+    for (let y = current; y >= 2022; y -= 1) list.push(String(y));
     return list;
   }, []);
 
@@ -639,6 +640,8 @@ export type DateSeriesGranularity = AdjustGranularity;
 
 export const parsePerformanceEntryDate = (dateValue: string): Date | null => {
   try {
+    const withYear = parse(dateValue, "dd MMM yyyy", new Date());
+    if (!Number.isNaN(withYear.getTime())) return withYear;
     const withCurrentYear = parse(
       `${dateValue} ${new Date().getFullYear()}`,
       "dd MMM yyyy",

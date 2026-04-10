@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,6 +145,7 @@ type PlatformSortKey =
   | "performance";
 
 const PlatformReports = () => {
+  const router = useRouter();
   const { inRange, filterEntries, state } = useDateRange("reports-platform");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<PlatformSortKey>("spend");
@@ -498,11 +500,11 @@ const PlatformReports = () => {
         </Card>
       </div> */}
 
-      <Card className="border-border/50">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <Card className="border-border/50 overflow-hidden">
+        <CardContent className="p-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4 pt-4 pb-2">
             <h3 className="font-display font-semibold text-lg">
-              Platform Reports - 2026
+              Platform Reports
             </h3>
             <div className="flex flex-wrap items-center gap-2">
               <ReportFilters
@@ -516,9 +518,9 @@ const PlatformReports = () => {
           </div>
 
           <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
+            <h4 className="text-sm font-medium text-muted-foreground px-4 pb-2 flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
-              Platform Spend Trend (Monthly)
+              Platform Spend Trend
             </h4>
             <div className="w-full min-w-0">
             <DualYAxisScrollableComposedChart
@@ -582,11 +584,13 @@ const PlatformReports = () => {
                   hide={hiddenSeries.has("Total")}
                 />
             </DualYAxisScrollableComposedChart>
-            <InteractiveLegend
-              payload={platformTrendLegendPayload}
-              hiddenSeries={hiddenSeries}
-              onToggle={toggleSeries}
-            />
+            <div className="px-4 pb-3 pt-1">
+              <InteractiveLegend
+                payload={platformTrendLegendPayload}
+                hiddenSeries={hiddenSeries}
+                onToggle={toggleSeries}
+              />
+            </div>
             </div>
           </div>
 
@@ -800,7 +804,14 @@ const PlatformReports = () => {
                 <TableBody>
                   {detailData.projects.map((p) => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell>
+                        <button
+                          className="font-medium text-primary hover:underline cursor-pointer text-left"
+                          onClick={() => { setDetailPlatform(null); router.push(`/projects/${p.id}`); }}
+                        >
+                          {p.name}
+                        </button>
+                      </TableCell>
                       <TableCell>{p.client}</TableCell>
                       <TableCell>{p.spend}</TableCell>
                       <TableCell>{p.revenue}</TableCell>

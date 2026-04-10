@@ -379,8 +379,13 @@ const ProjectReports = () => {
                         key={item.name}
                         className="border-b border-border/50 hover:bg-muted/30"
                       >
-                        <td className="py-2 px-3 text-primary font-medium sticky left-0 z-20 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
-                          {item.name}
+                        <td className="py-2 px-3 sticky left-0 z-20 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
+                          <button
+                            className="text-primary font-medium hover:underline cursor-pointer text-left w-full"
+                            onClick={() => proj && router.push(`/projects/${proj.id}`)}
+                          >
+                            {item.name}
+                          </button>
                         </td>
                         <td className="py-2 px-3 sticky left-[220px] z-20 bg-card w-[120px] min-w-[120px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
                           <Badge variant={
@@ -498,7 +503,14 @@ const ProjectReports = () => {
                       <TableCell className="font-bold">
                         {globalIdx + 1}
                       </TableCell>
-                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell>
+                        <button
+                          className="font-medium text-primary hover:underline cursor-pointer text-left"
+                          onClick={() => router.push(`/projects/${p.id}`)}
+                        >
+                          {p.name}
+                        </button>
+                      </TableCell>
                       <TableCell className="text-sm">{p.client}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">

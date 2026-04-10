@@ -181,9 +181,9 @@ const ProjectDetail = () => {
 
         {activeTab === 'timeline' && (
           <div className="space-y-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <Card className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="flex items-center justify-between px-4 pt-4 pb-2 flex-wrap gap-2">
                   <h3 className="font-display font-semibold">Timeline Report</h3>
                   <div className="flex gap-2 flex-wrap">
                     <Select value={platformFilter} onValueChange={setPlatformFilter}>
@@ -196,7 +196,7 @@ const ProjectDetail = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between px-4 pb-2">
                   <h4 className="text-sm font-medium flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> Performance Timeline Chart</h4>
                   <Select value={metricsFilter} onValueChange={setMetricsFilter}>
                     <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
@@ -209,7 +209,7 @@ const ProjectDetail = () => {
                   </Select>
                 </div>
 
-                <div className="w-full min-w-0">
+                <div className="w-full min-w-0 pb-3">
                 <DualYAxisScrollableComposedChart
                   data={timelineSeries}
                   dataLength={timelineSeries.length}
