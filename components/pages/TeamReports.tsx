@@ -21,16 +21,7 @@ import {
 } from "@/components/ui/select";
 import { users, chartData, projects, performanceEntries } from "@/services/appData.service";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  Eye,
-  Download,
-  TrendingUp,
-  Users as UsersIcon,
-  DollarSign,
-  Target,
-  BarChart3,
-  FolderKanban,
-} from "lucide-react";
+import { Eye, Download, TrendingUp, Users as UsersIcon, DollarSign, Target, ChartBar as BarChart3, FolderKanban } from "lucide-react";
 import ReportFilters from "@/components/shared/ReportFilters";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import SwitchUserDropdown from "@/components/shared/SwitchUserDropdown";
@@ -623,7 +614,7 @@ const TeamReports = () => {
             Performance breakdown by team
           </p>
         </div>
-        <DateRangePicker scope="reports-team" className="w-auto" />
+        <DateRangePicker scope="reports-team" className="w-auto" showAdjust />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">

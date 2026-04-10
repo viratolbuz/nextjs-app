@@ -5,14 +5,21 @@ import {
   addDays,
   addHours,
   addMonths,
+  addWeeks,
+  differenceInDays,
   endOfDay,
+  endOfMonth,
+  endOfWeek,
   format,
   isAfter,
   isBefore,
   parse,
   startOfDay,
   startOfMonth,
+  startOfWeek,
   subDays,
+  subMonths,
+  subWeeks,
 } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -22,16 +29,20 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import type { PerformanceEntry } from "@/types";
 
-type DatePreset =
+export type DatePreset =
   | "today"
   | "yesterday"
+  | "thisWeek"
   | "last7"
+  | "lastWeek"
   | "last14"
+  | "thisMonth"
+  | "last30"
   | "lastMonth"
-  | "last6Months"
-  | "lastQuarter"
-  | "last12Months"
+  | "allTime"
   | "custom";
+
+export type Granularity = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
 
 type ScopeKey =
   | "dashboard"
@@ -48,12 +59,14 @@ interface DateRangeValue {
 interface ScopeState {
   preset: DatePreset;
   range: DateRangeValue;
+  granularity: Granularity;
 }
 
 interface DateRangeContextValue {
   scoped: Record<string, ScopeState>;
   setPreset: (scope: string, preset: DatePreset) => void;
   setCustomRange: (scope: string, range: DateRangeValue) => void;
+  setGranularity: (scope: string, granularity: Granularity) => void;
 }
 
 const DateRangeContext = createContext<DateRangeContextValue | null>(null);
@@ -61,12 +74,14 @@ const DateRangeContext = createContext<DateRangeContextValue | null>(null);
 const PRESET_LIST: { id: DatePreset; label: string }[] = [
   { id: "today", label: "Today" },
   { id: "yesterday", label: "Yesterday" },
+  { id: "thisWeek", label: "This week (Mon – Today)" },
   { id: "last7", label: "Last 7 days" },
+  { id: "lastWeek", label: "Last week (Sun – Sat)" },
   { id: "last14", label: "Last 14 days" },
+  { id: "thisMonth", label: "This month" },
+  { id: "last30", label: "Last 30 days" },
   { id: "lastMonth", label: "Last month" },
-  { id: "last6Months", label: "Last 6 months" },
-  { id: "lastQuarter", label: "Last quarter" },
-  { id: "last12Months", label: "Last 12 months" },
+  { id: "allTime", label: "All time" },
   { id: "custom", label: "Custom" },
 ];
 
@@ -82,18 +97,27 @@ const getRangeFromPreset = (preset: DatePreset): DateRangeValue => {
       return { from: now, to: now };
     case "yesterday":
       return { from: subDays(now, 1), to: subDays(now, 1) };
+    case "thisWeek":
+      return { from: startOfWeek(now, { weekStartsOn: 1 }), to: now };
     case "last7":
       return { from: subDays(now, 6), to: now };
+    case "lastWeek": {
+      const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+      const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+      return { from: lastWeekStart, to: lastWeekEnd };
+    }
     case "last14":
       return { from: subDays(now, 13), to: now };
-    case "lastMonth":
-      return { from: subDays(now, 30), to: now };
-    case "last6Months":
-      return { from: subDays(now, 182), to: now };
-    case "lastQuarter":
-      return { from: subDays(now, 90), to: now };
-    case "last12Months":
-      return { from: subDays(now, 365), to: now };
+    case "thisMonth":
+      return { from: startOfMonth(now), to: now };
+    case "last30":
+      return { from: subDays(now, 29), to: now };
+    case "lastMonth": {
+      const lastMonth = subMonths(now, 1);
+      return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
+    }
+    case "allTime":
+      return { from: new Date("2024-01-01"), to: now };
     case "custom":
       return getTodayRange();
     default:
@@ -104,37 +128,122 @@ const getRangeFromPreset = (preset: DatePreset): DateRangeValue => {
 const getPresetLabel = (preset: DatePreset): string =>
   PRESET_LIST.find((p) => p.id === preset)?.label ?? "Custom";
 
+export function getGranularityOptionsForPreset(preset: DatePreset): Record<Granularity, boolean> {
+  switch (preset) {
+    case "today":
+    case "yesterday":
+      return { daily: false, weekly: false, monthly: false, quarterly: false, yearly: false };
+    case "thisWeek":
+    case "last7":
+    case "lastWeek":
+      return { daily: true, weekly: false, monthly: false, quarterly: false, yearly: false };
+    case "last14":
+    case "thisMonth":
+    case "last30":
+      return { daily: true, weekly: true, monthly: false, quarterly: false, yearly: false };
+    default:
+      return getGranularityOptionsForDateRange(null);
+  }
+}
+
+export function getGranularityOptionsForDateRange(
+  range: DateRangeValue | null,
+): Record<Granularity, boolean> {
+  if (!range) {
+    return { daily: true, weekly: true, monthly: true, quarterly: true, yearly: true };
+  }
+  const days = differenceInDays(range.to, range.from) + 1;
+  if (days >= 1 && days <= 7) {
+    return { daily: true, weekly: false, monthly: false, quarterly: false, yearly: false };
+  }
+  if (days >= 8 && days <= 30) {
+    return { daily: true, weekly: true, monthly: false, quarterly: false, yearly: false };
+  }
+  if (days >= 31 && days <= 90) {
+    return { daily: false, weekly: true, monthly: true, quarterly: false, yearly: false };
+  }
+  if (days >= 91 && days <= 365) {
+    return { daily: false, weekly: false, monthly: true, quarterly: true, yearly: false };
+  }
+  return { daily: false, weekly: false, monthly: false, quarterly: true, yearly: true };
+}
+
+export function getAllowedGranularities(
+  preset: DatePreset,
+  range: DateRangeValue,
+): Record<Granularity, boolean> {
+  if (preset !== "custom" && preset !== "lastMonth" && preset !== "allTime") {
+    return getGranularityOptionsForPreset(preset);
+  }
+  return getGranularityOptionsForDateRange(range);
+}
+
+export function getDefaultGranularity(allowed: Record<Granularity, boolean>): Granularity {
+  const order: Granularity[] = ["daily", "weekly", "monthly", "quarterly", "yearly"];
+  return order.find((g) => allowed[g]) ?? "daily";
+}
+
 export function DateRangeProvider({ children }: { children: React.ReactNode }) {
+  const initialPreset: DatePreset = "lastMonth";
+  const initialRange = getRangeFromPreset(initialPreset);
+  const initialAllowed = getAllowedGranularities(initialPreset, initialRange);
+  const initialGranularity = getDefaultGranularity(initialAllowed);
+
+  const makeInitial = (): ScopeState => ({
+    preset: initialPreset,
+    range: initialRange,
+    granularity: initialGranularity,
+  });
+
   const [scoped, setScoped] = useState<Record<string, ScopeState>>({
-    dashboard: { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    projects: { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-team": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-platform": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
-    "reports-project": { preset: "lastMonth", range: getRangeFromPreset("lastMonth") },
+    dashboard: makeInitial(),
+    projects: makeInitial(),
+    "reports-team": makeInitial(),
+    "reports-platform": makeInitial(),
+    "reports-project": makeInitial(),
   });
 
   const setPreset = (scope: string, preset: DatePreset) => {
-    setScoped((prev) => ({
-      ...prev,
-      [scope]: {
-        preset,
-        range: preset === "custom" ? prev[scope]?.range ?? getTodayRange() : getRangeFromPreset(preset),
-      },
-    }));
+    setScoped((prev) => {
+      const range =
+        preset === "custom"
+          ? prev[scope]?.range ?? getTodayRange()
+          : getRangeFromPreset(preset);
+      const allowed = getAllowedGranularities(preset, range);
+      const currentGranularity = prev[scope]?.granularity ?? "daily";
+      const granularity = allowed[currentGranularity]
+        ? currentGranularity
+        : getDefaultGranularity(allowed);
+      return {
+        ...prev,
+        [scope]: { preset, range, granularity },
+      };
+    });
   };
 
   const setCustomRange = (scope: string, range: DateRangeValue) => {
+    setScoped((prev) => {
+      const allowed = getAllowedGranularities("custom", range);
+      const currentGranularity = prev[scope]?.granularity ?? "daily";
+      const granularity = allowed[currentGranularity]
+        ? currentGranularity
+        : getDefaultGranularity(allowed);
+      return {
+        ...prev,
+        [scope]: { preset: "custom", range, granularity },
+      };
+    });
+  };
+
+  const setGranularity = (scope: string, granularity: Granularity) => {
     setScoped((prev) => ({
       ...prev,
-      [scope]: {
-        preset: "custom",
-        range,
-      },
+      [scope]: { ...prev[scope], granularity },
     }));
   };
 
   return (
-    <DateRangeContext.Provider value={{ scoped, setPreset, setCustomRange }}>
+    <DateRangeContext.Provider value={{ scoped, setPreset, setCustomRange, setGranularity }}>
       {children}
     </DateRangeContext.Provider>
   );
@@ -144,7 +253,12 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
   const ctx = useContext(DateRangeContext);
   if (!ctx) throw new Error("useDateRange must be used inside DateRangeProvider");
 
-  const state = ctx.scoped[scope] ?? { preset: "lastMonth", range: getRangeFromPreset("lastMonth") };
+  const defaultRange = getRangeFromPreset("lastMonth");
+  const state = ctx.scoped[scope] ?? {
+    preset: "lastMonth" as DatePreset,
+    range: defaultRange,
+    granularity: "monthly" as Granularity,
+  };
   const from = startOfDay(state.range.from);
   const to = endOfDay(state.range.to);
 
@@ -163,27 +277,44 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
   const formatRangeSpan = () =>
     `${format(state.range.from, "dd MMM yyyy")} - ${format(state.range.to, "dd MMM yyyy")}`;
 
+  const allowedGranularities = getAllowedGranularities(state.preset, state.range);
+
   return {
     state,
     presetLabel: getPresetLabel(state.preset),
     formatRangeSpan,
     inRange,
     filterEntries,
+    allowedGranularities,
     setPreset: (preset: DatePreset) => ctx.setPreset(scope, preset),
     setCustomRange: (range: DateRangeValue) => ctx.setCustomRange(scope, range),
+    setGranularity: (granularity: Granularity) => ctx.setGranularity(scope, granularity),
   };
 }
+
+const GRANULARITY_LABELS: Record<Granularity, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+};
+
+const ALL_GRANULARITIES: Granularity[] = ["daily", "weekly", "monthly", "quarterly", "yearly"];
 
 export function DateRangePicker({
   className,
   compact,
   scope = "dashboard",
+  showAdjust = false,
 }: {
   className?: string;
   compact?: boolean;
   scope?: ScopeKey;
+  showAdjust?: boolean;
 }) {
-  const { state, presetLabel, setPreset, setCustomRange } = useDateRange(scope);
+  const { state, presetLabel, setPreset, setCustomRange, setGranularity, allowedGranularities } =
+    useDateRange(scope);
   const [open, setOpen] = useState(false);
   const [activeInput, setActiveInput] = useState<"from" | "to">("from");
   const [hoverDate, setHoverDate] = useState<Date | undefined>(undefined);
@@ -249,24 +380,27 @@ export function DateRangePicker({
     setDisplayMonth((prev) => new Date(y, prev.getMonth(), 1));
   };
 
+  const allDisabled = ALL_GRANULARITIES.every((g) => !allowedGranularities[g]);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="outline" className={cn("justify-start", className)}>
-          {/* <CalendarIcon className="mr-2 h-4 w-4" /> */}
-          {compact ? presetLabel : `${presetLabel}: ${format(state.range.from, "dd MMM")} - ${format(state.range.to, "dd MMM")}`}
+          {compact
+            ? presetLabel
+            : `${presetLabel}: ${format(state.range.from, "dd MMM")} - ${format(state.range.to, "dd MMM")}`}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[550px] p-0">
-        <div className="grid grid-cols-[220px_1fr]">
-          <div className="border-r p-2">
+      <PopoverContent align="end" className="w-[620px] p-0">
+        <div className="grid grid-cols-[200px_1fr]">
+          <div className="border-r p-2 flex flex-col">
             {PRESET_LIST.map((preset) => (
               <button
                 key={preset.id}
                 type="button"
                 className={cn(
                   "w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted",
-                  state.preset === preset.id && "bg-muted",
+                  state.preset === preset.id && "bg-muted font-medium",
                 )}
                 onClick={() => {
                   setPreset(preset.id);
@@ -278,65 +412,95 @@ export function DateRangePicker({
             ))}
           </div>
 
-          <div className="p-3">
-            <div className="flex flex-col gap-3 w-full">
-              <div className="space-y-2 flex gap-2">
-                <div className="w-auto mt-0">
-                  <label className="text-xs text-muted-foreground">Start date</label>
-                  <Input
-                    value={parsedFrom}
-                    onFocus={() => setActiveInput("from")}
-                    onChange={(e) => updateDateByInput("from", e.target.value)}
-                  />
-                </div>
-                <div className="w-auto !mt-0">
-                  <label className="text-xs text-muted-foreground">End date</label>
-                  <Input
-                    value={parsedTo}
-                    onFocus={() => setActiveInput("to")}
-                    onChange={(e) => updateDateByInput("to", e.target.value)}
-                  />
-                </div>
-                {/* <p className="text-xs text-muted-foreground">
-                  {format(state.range.from, "dd MMM yyyy")} - {format(state.range.to, "dd MMM yyyy")}
-                </p> */}
+          <div className="p-3 flex flex-col gap-3">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">Start date*</label>
+                <Input
+                  value={parsedFrom}
+                  onFocus={() => setActiveInput("from")}
+                  onChange={(e) => updateDateByInput("from", e.target.value)}
+                />
               </div>
-
-              <div className="border rounded-md p-2">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-muted-foreground">Date range</p>
-                  <Select value={year} onValueChange={onYearChange}>
-                    <SelectTrigger className="h-8 w-[110px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((y) => (
-                        <SelectItem key={y} value={y}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Calendar
-                  mode="range"
-                  numberOfMonths={1}
-                  month={displayMonth}
-                  onMonthChange={setDisplayMonth}
-                  selected={previewRange}
-                  onDayMouseEnter={(day) => setHoverDate(day)}
-                  onDayMouseLeave={() => setHoverDate(undefined)}
-                  onSelect={(range) => {
-                    if (!range?.from && !range?.to) return;
-                    const dateToApply =
-                      activeInput === "from"
-                        ? (range?.from ?? range?.to)
-                        : (range?.to ?? range?.from);
-                    onSelectDate(dateToApply);
-                  }}
+              <div className="flex-1">
+                <label className="text-xs text-muted-foreground">End date*</label>
+                <Input
+                  value={parsedTo}
+                  onFocus={() => setActiveInput("to")}
+                  onChange={(e) => updateDateByInput("to", e.target.value)}
                 />
               </div>
             </div>
+
+            <div className="border rounded-md p-2">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-muted-foreground">Date range</p>
+                <Select value={year} onValueChange={onYearChange}>
+                  <SelectTrigger className="h-8 w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Calendar
+                mode="range"
+                numberOfMonths={1}
+                month={displayMonth}
+                onMonthChange={setDisplayMonth}
+                selected={previewRange}
+                onDayMouseEnter={(day) => setHoverDate(day)}
+                onDayMouseLeave={() => setHoverDate(undefined)}
+                onSelect={(range) => {
+                  if (!range?.from && !range?.to) return;
+                  const dateToApply =
+                    activeInput === "from"
+                      ? (range?.from ?? range?.to)
+                      : (range?.to ?? range?.from);
+                  onSelectDate(dateToApply);
+                }}
+              />
+            </div>
+
+            {showAdjust && (
+              <div className="border rounded-md p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Adjust</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {ALL_GRANULARITIES.map((g) => {
+                    const enabled = allowedGranularities[g];
+                    const active = state.granularity === g;
+                    return (
+                      <button
+                        key={g}
+                        type="button"
+                        disabled={!enabled || allDisabled}
+                        onClick={() => enabled && setGranularity(g)}
+                        className={cn(
+                          "px-3 py-1.5 text-xs rounded-md border transition-colors",
+                          active && enabled
+                            ? "bg-foreground text-background border-foreground"
+                            : enabled
+                              ? "bg-background text-foreground border-border hover:bg-muted"
+                              : "bg-muted/40 text-muted-foreground border-border/40 cursor-not-allowed opacity-50",
+                        )}
+                      >
+                        {GRANULARITY_LABELS[g]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {allDisabled && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Granularity not available for this date range
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>
@@ -344,84 +508,20 @@ export function DateRangePicker({
   );
 }
 
-export function buildDashboardPerformanceSeries(
-  type: DatePreset,
-  range: DateRangeValue,
-  trend: Array<{
-    month: string;
-    spend: number;
-    revenue: number;
-    leads: number;
-    roas: number;
-    cpa?: number;
-  }>,
-  entries: PerformanceEntry[],
-) {
-  const granularity = getGranularityFromPreset(type);
-  const buckets = createTimeBuckets(granularity, range);
-  const seeded = buckets.map((bucket) => ({
-    key: bucket.key,
-    spend: 0,
-    revenue: 0,
-    leads: 0,
-  }));
-  const bucketIndex = new Map(seeded.map((row, idx) => [row.key, idx]));
-
-  entries.forEach((entry) => {
-    const parsed = parsePerformanceEntryDate(entry.date);
-    if (!parsed) return;
-    if (isBefore(parsed, startOfDay(range.from)) || isAfter(parsed, endOfDay(range.to))) {
-      return;
-    }
-
-    const key = getBucketKey(parsed, granularity);
-    const idx = bucketIndex.get(key);
-    if (idx === undefined) return;
-
-    // Hourly points are derived from day-level dummy data to keep the chart alive.
-    const divisor = granularity === "hourly" ? 24 : 1;
-    seeded[idx].spend += entry.spend / divisor;
-    seeded[idx].revenue += entry.revenue / divisor;
-    seeded[idx].leads += entry.leads / divisor;
-  });
-
-  const data = seeded.map((row, idx) => {
-    const spend = Number(row.spend.toFixed(2));
-    const revenue = Number(row.revenue.toFixed(2));
-    const leads = Math.round(row.leads);
-    const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
-    const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
-    return {
-      period: buckets[idx].label,
-      spend,
-      revenue,
-      leads,
-      roas,
-      cpa,
-    };
-  });
-
-  if (data.some((d) => d.spend || d.revenue || d.leads)) {
-    return { data, xKey: "period" as const, granularity };
-  }
-
-  const fallback = trend.filter((item) => {
-    const parsed = parse(item.month, "MMM yyyy", new Date());
-    return !isBefore(parsed, startOfDay(range.from)) && !isAfter(parsed, endOfDay(range.to));
-  });
-
-  return {
-    data: fallback.length > 0 ? fallback : trend,
-    xKey: "month" as const,
-    granularity: "monthly" as const,
-  };
-}
-
 export type DateSeriesGranularity = "hourly" | "daily" | "monthly";
 
 export const getGranularityFromPreset = (preset: DatePreset): DateSeriesGranularity => {
   if (preset === "today" || preset === "yesterday") return "hourly";
-  if (preset === "last7" || preset === "last14" || preset === "lastMonth") return "daily";
+  if (
+    preset === "last7" ||
+    preset === "last14" ||
+    preset === "lastMonth" ||
+    preset === "thisWeek" ||
+    preset === "lastWeek" ||
+    preset === "thisMonth" ||
+    preset === "last30"
+  )
+    return "daily";
   return "monthly";
 };
 
@@ -491,3 +591,75 @@ export const createTimeBuckets = (
   }
   return buckets;
 };
+
+export function buildDashboardPerformanceSeries(
+  type: DatePreset,
+  range: DateRangeValue,
+  trend: Array<{
+    month: string;
+    spend: number;
+    revenue: number;
+    leads: number;
+    roas: number;
+    cpa?: number;
+  }>,
+  entries: PerformanceEntry[],
+) {
+  const granularity = getGranularityFromPreset(type);
+  const buckets = createTimeBuckets(granularity, range);
+  const seeded = buckets.map((bucket) => ({
+    key: bucket.key,
+    spend: 0,
+    revenue: 0,
+    leads: 0,
+  }));
+  const bucketIndex = new Map(seeded.map((row, idx) => [row.key, idx]));
+
+  entries.forEach((entry) => {
+    const parsed = parsePerformanceEntryDate(entry.date);
+    if (!parsed) return;
+    if (isBefore(parsed, startOfDay(range.from)) || isAfter(parsed, endOfDay(range.to))) {
+      return;
+    }
+
+    const key = getBucketKey(parsed, granularity);
+    const idx = bucketIndex.get(key);
+    if (idx === undefined) return;
+
+    const divisor = granularity === "hourly" ? 24 : 1;
+    seeded[idx].spend += entry.spend / divisor;
+    seeded[idx].revenue += entry.revenue / divisor;
+    seeded[idx].leads += entry.leads / divisor;
+  });
+
+  const data = seeded.map((row, idx) => {
+    const spend = Number(row.spend.toFixed(2));
+    const revenue = Number(row.revenue.toFixed(2));
+    const leads = Math.round(row.leads);
+    const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+    const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
+    return {
+      period: buckets[idx].label,
+      spend,
+      revenue,
+      leads,
+      roas,
+      cpa,
+    };
+  });
+
+  if (data.some((d) => d.spend || d.revenue || d.leads)) {
+    return { data, xKey: "period" as const, granularity };
+  }
+
+  const fallback = trend.filter((item) => {
+    const parsed = parse(item.month, "MMM yyyy", new Date());
+    return !isBefore(parsed, startOfDay(range.from)) && !isAfter(parsed, endOfDay(range.to));
+  });
+
+  return {
+    data: fallback.length > 0 ? fallback : trend,
+    xKey: "month" as const,
+    granularity: "monthly" as const,
+  };
+}

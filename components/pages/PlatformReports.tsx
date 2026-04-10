@@ -381,7 +381,7 @@ const PlatformReports = () => {
             Cross-platform performance comparison
           </p>
         </div>
-        <DateRangePicker scope="reports-platform" className="w-auto" />
+        <DateRangePicker scope="reports-platform" className="w-auto" showAdjust />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

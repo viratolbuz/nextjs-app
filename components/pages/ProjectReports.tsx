@@ -14,13 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { projects, projectChartData } from "@/services/appData.service";
-import {
-  Eye,
-  CheckCircle,
-  PauseCircle,
-  AlertTriangle,
-  TrendingUp,
-} from "lucide-react";
+import { Eye, CircleCheck as CheckCircle, CirclePause as PauseCircle, TriangleAlert as AlertTriangle, TrendingUp } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -339,7 +333,7 @@ const ProjectReports = () => {
             All {projects.length} campaigns ranked by performance
           </p>
         </div>
-        <DateRangePicker scope="reports-project" className="w-auto" />
+        <DateRangePicker scope="reports-project" className="w-auto" showAdjust />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

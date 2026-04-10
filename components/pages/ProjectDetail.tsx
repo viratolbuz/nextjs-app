@@ -77,7 +77,7 @@ const ProjectDetail = () => {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-[28px] font-display font-bold">{project.name}</h1>
-            <Badge variant={project.status === 'Active' ? 'default' : 'secondary'}>{project.status}</Badge>
+            <Badge variant={project.status === 'Active' ? 'outline' : 'secondary'}>{project.status}</Badge>
           </div>
           <p className="text-[15px] text-muted-foreground">{project.client} · {project.type} · {project.country}</p>
         </div>
@@ -89,7 +89,7 @@ const ProjectDetail = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div><p className="text-[13px] text-muted-foreground">Project Name</p><p className="text-sm font-medium">{project.name}</p></div>
             <div><p className="text-[13px] text-muted-foreground">Project Type</p><Badge variant="secondary">{project.type}</Badge></div>
-            <div><p className="text-[13px] text-muted-foreground">Status</p><Badge variant={project.status === 'Active' ? 'default' : 'secondary'}>{project.status}</Badge></div>
+            <div><p className="text-[13px] text-muted-foreground">Status</p><Badge variant={project.status === 'Active' ? 'outline' : 'secondary'}>{project.status}</Badge></div>
             <div><p className="text-[13px] text-muted-foreground">Country</p><p className="text-sm">📍 {project.country}</p></div>
             <div>
               <p className="text-[13px] text-muted-foreground">Client</p>

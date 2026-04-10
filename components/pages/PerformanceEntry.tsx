@@ -13,7 +13,7 @@ import {
   projects,
   platforms,
 } from '@/services/appData.service';
-import { Search, Plus, Upload, Download, Edit, Trash2, Eye, FileDown } from 'lucide-react';
+import { Search, Plus, Upload, Download, CreditCard as Edit, Trash2, Eye, FileDown } from 'lucide-react';
 import type { PerformanceEntry } from '@/services/appData.service';
 import AdvancedPagination from '@/components/shared/AdvancedPagination';
 import PermissionGate from '@/components/shared/PermissionGate';
@@ -224,7 +224,7 @@ const PerformanceEntryPage = () => {
                 return (
                   <TableRow key={e.id}>
                     <TableCell className="text-sm font-medium">{e.project}</TableCell>
-                    <TableCell><Badge variant={proj?.type === 'Real Estate' ? 'secondary' : 'default'} className="text-[12px]">{proj?.type || 'Lead Gen'}</Badge></TableCell>
+                    <TableCell><Badge variant={proj?.type === 'Real Estate' ? 'secondary' : 'outline'} className="text-[12px]">{proj?.type || 'Lead Gen'}</Badge></TableCell>
                     <TableCell className="text-sm">{proj?.client || e.project}</TableCell>
                     <TableCell className="text-sm">{e.platform}</TableCell>
                     <TableCell className="text-right text-sm">{formatAmountFromRupees(e.spend)}</TableCell>
@@ -234,7 +234,7 @@ const PerformanceEntryPage = () => {
                     <TableCell className="text-right text-sm">{e.roas > 0 ? e.roas : '-'}</TableCell>
                     <TableCell className="text-sm">2026</TableCell>
                     <TableCell className="text-sm">March</TableCell>
-                    <TableCell><Badge variant="default" className="text-[12px]">Active</Badge></TableCell>
+                    <TableCell><Badge className="text-[12px]">Active</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" className="h-7 w-7 bg-info/10 text-info hover:bg-info/20 rounded"><Eye className="w-3 h-3" /></Button>

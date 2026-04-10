@@ -19,13 +19,13 @@ const Dashboard = () => {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Welcome back, <span className="font-semibold text-foreground">{activeUser?.name}</span>!{" "}
-            <Badge variant="default" className="ml-1 text-[10px]">
+            <Badge className="ml-1 text-[10px]">
               {activeUser?.role}
             </Badge>
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <DateRangePicker scope="dashboard" className="w-auto" />
+          <DateRangePicker scope="dashboard" className="w-auto" showAdjust />
           {proxyUser && (
             <SwitchUserDropdown
               currentProxyUser={proxyUser}
