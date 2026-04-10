@@ -6,7 +6,7 @@ import KpiCards from "@/components/dashboard/KpiCards";
 import ChartSection from "@/components/dashboard/ChartSection";
 import InfoGrids from "@/components/dashboard/InfoGrids";
 import SwitchUserDropdown from "@/components/shared/SwitchUserDropdown";
-import { DateRangePicker } from "@/contexts/DateRangeContext";
+import { DateRangeWithAdjust } from "@/contexts/DateRangeContext";
 
 const Dashboard = () => {
   const { currentUser, proxyUser, proxyLogin, exitProxy } = useAuth();
@@ -19,13 +19,13 @@ const Dashboard = () => {
           <h1 className="text-xl sm:text-2xl md:text-3xl font-display font-bold tracking-tight">Dashboard</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Welcome back, <span className="font-semibold text-foreground">{activeUser?.name}</span>!{" "}
-            <Badge variant="default" className="ml-1 text-[10px]">
+            <Badge variant="primary" className="ml-1 text-[10px]">
               {activeUser?.role}
             </Badge>
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <DateRangePicker scope="dashboard" className="w-auto" />
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <DateRangeWithAdjust scope="dashboard" pickerClassName="w-auto" />
           {proxyUser && (
             <SwitchUserDropdown
               currentProxyUser={proxyUser}

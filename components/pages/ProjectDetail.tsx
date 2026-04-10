@@ -1,24 +1,32 @@
 "use client";
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DateRangePicker } from '@/contexts/DateRangeContext';
+import {
+  DateRangeWithAdjust,
+  useDateRange,
+  buildDashboardPerformanceSeries,
+} from '@/contexts/DateRangeContext';
 import {
   projects,
   performanceEntries,
-  platforms,
   chartData,
 } from '@/services/appData.service';
 import { ArrowLeft, DollarSign, TrendingUp, Target, Users, Globe, Clock, FileText, History } from 'lucide-react';
-import { ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { Line, XAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import GlassTabs from '@/components/shared/GlassTabs';
 import PremiumKpiCard from '@/components/shared/PremiumKpiCard';
-import { formatAmountFromRupees } from '@/lib/amount';
+import { TimeSeriesChartScroll } from '@/components/shared/TimeSeriesChartScroll';
+import {
+  DualYAxisScrollableComposedChart,
+  maxFromNumericKeys,
+} from '@/components/shared/DualYAxisScrollableComposedChart';
+import { formatAmountFromLakhs, formatAmountFromRupees, parseLakhsString } from '@/lib/amount';
 
 const ProjectDetail = () => {
   const params = useParams();
@@ -29,24 +37,70 @@ const ProjectDetail = () => {
   const [metricsFilter, setMetricsFilter] = useState('all');
   const [platformFilter, setPlatformFilter] = useState('overall');
 
-  const linkedPlatforms = platforms.filter(p => project?.platforms.includes(p.name));
+  const { state } = useDateRange('project-detail');
 
-  const timelineData = useMemo(() => {
+  const projectEntries = useMemo(() => {
     if (!project) return [];
-    const months = ['Apr 2025','May 2025','Jun 2025','Jul 2025','Aug 2025','Sep 2025','Oct 2025','Nov 2025','Dec 2025','Jan 2026','Feb 2026','Mar 2026'];
-    return months.map((month, i) => {
-      const base = chartData.performanceTrend[i];
-      const factor = (parseFloat(project.spend.replace(/[₹L,]/g, '')) / 48.2);
+    const nameMatch = (e: (typeof performanceEntries)[0]) =>
+      e.project.trim().toLowerCase() === project.name.trim().toLowerCase();
+    if (platformFilter === 'overall') {
+      return performanceEntries.filter(nameMatch);
+    }
+    return performanceEntries.filter(
+      (e) => nameMatch(e) && e.platform === platformFilter,
+    );
+  }, [project, platformFilter]);
+
+  const { data: timelineSeries, xKey, granularity: timelineGranularity } = useMemo(() => {
+    if (!project) {
       return {
-        month,
-        spend: Math.round(base.spend * factor * 100000),
-        revenue: Math.round(base.revenue * factor * 100000),
-        leads: Math.round(base.leads * factor),
-        roas: base.roas,
-        cpa: base.cpa,
+        data: [] as ReturnType<typeof buildDashboardPerformanceSeries>['data'],
+        xKey: 'period' as const,
+        granularity: 'monthly' as const,
       };
-    });
-  }, [project]);
+    }
+    const fromProject = buildDashboardPerformanceSeries(
+      state.adjust,
+      state.range,
+      chartData.performanceTrend,
+      projectEntries,
+      { skipGlobalTrendFallback: true },
+    );
+    if (fromProject.data.some((d) => d.spend || d.revenue || d.leads)) {
+      return fromProject;
+    }
+    const globalAgg = buildDashboardPerformanceSeries(
+      state.adjust,
+      state.range,
+      chartData.performanceTrend,
+      performanceEntries,
+      { skipGlobalTrendFallback: true },
+    );
+    const gSpendSum = globalAgg.data.reduce((s, d) => s + d.spend, 0);
+    const pLakhs = parseLakhsString(project.spend);
+    const factor =
+      gSpendSum > 0.01 ? Math.min(2.5, pLakhs / gSpendSum) : pLakhs / 48.2;
+    return {
+      ...globalAgg,
+      data: globalAgg.data.map((d) => {
+        const leads = Math.max(0, Math.round(d.leads * factor));
+        const spend = Number((d.spend * factor).toFixed(2));
+        const revenue = Number((d.revenue * factor).toFixed(2));
+        const roas = spend > 0 ? Number((revenue / spend).toFixed(2)) : 0;
+        const cpa = leads > 0 ? Math.round((spend * 100000) / leads) : 0;
+        return { ...d, spend, revenue, leads, roas, cpa };
+      }),
+    };
+  }, [project, state.adjust, state.range, projectEntries]);
+
+  const timelineLeftMax = useMemo(
+    () => maxFromNumericKeys(timelineSeries, ['spend'], 1, 1.05),
+    [timelineSeries],
+  );
+  const timelineRightMax = useMemo(
+    () => maxFromNumericKeys(timelineSeries, ['leads', 'cpa'], 1, 1.08),
+    [timelineSeries],
+  );
 
   if (!project) return <div className="p-8 text-center"><p>Project not found</p><Button onClick={() => router.push('/projects')}>Back</Button></div>;
 
@@ -72,15 +126,18 @@ const ProjectDetail = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/projects')}><ArrowLeft className="w-5 h-5" /></Button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-display font-bold">{project.name}</h1>
-            <Badge variant={project.status === 'Active' ? 'default' : 'secondary'}>{project.status}</Badge>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-4 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/projects')}><ArrowLeft className="w-5 h-5" /></Button>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-[28px] font-display font-bold">{project.name}</h1>
+              <Badge variant={project.status === 'Active' ? 'primary' : 'secondary'}>{project.status}</Badge>
+            </div>
+            <p className="text-[15px] text-muted-foreground">{project.client} · {project.type} · {project.country}</p>
           </div>
-          <p className="text-[15px] text-muted-foreground">{project.client} · {project.type} · {project.country}</p>
         </div>
+        <DateRangeWithAdjust scope="project-detail" pickerClassName="w-auto shrink-0" className="shrink-0" />
       </div>
 
       <Card>
@@ -89,7 +146,7 @@ const ProjectDetail = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div><p className="text-[13px] text-muted-foreground">Project Name</p><p className="text-sm font-medium">{project.name}</p></div>
             <div><p className="text-[13px] text-muted-foreground">Project Type</p><Badge variant="secondary">{project.type}</Badge></div>
-            <div><p className="text-[13px] text-muted-foreground">Status</p><Badge variant={project.status === 'Active' ? 'default' : 'secondary'}>{project.status}</Badge></div>
+            <div><p className="text-[13px] text-muted-foreground">Status</p><Badge variant={project.status === 'Active' ? 'primary' : 'secondary'}>{project.status}</Badge></div>
             <div><p className="text-[13px] text-muted-foreground">Country</p><p className="text-sm">📍 {project.country}</p></div>
             <div>
               <p className="text-[13px] text-muted-foreground">Client</p>
@@ -126,10 +183,9 @@ const ProjectDetail = () => {
           <div className="space-y-6">
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h3 className="font-display font-semibold">Timeline Report</h3>
-                  <div className="flex gap-2">
-                    <DateRangePicker className="w-auto" />
+                  <div className="flex gap-2 flex-wrap">
                     <Select value={platformFilter} onValueChange={setPlatformFilter}>
                       <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -153,19 +209,32 @@ const ProjectDetail = () => {
                   </Select>
                 </div>
 
-                <ResponsiveContainer width="100%" height={350}>
-                  <ComposedChart data={timelineData}>
+                <div className="w-full min-w-0">
+                <DualYAxisScrollableComposedChart
+                  data={timelineSeries}
+                  dataLength={timelineSeries.length}
+                  granularity={timelineGranularity}
+                  heightClassName="h-[350px]"
+                  railWidthClassName="w-[52px] sm:w-[58px]"
+                  leftMax={timelineLeftMax}
+                  rightMax={timelineRightMax}
+                  leftGhostDataKeys={['spend']}
+                  rightGhostDataKeys={['leads', 'cpa']}
+                  leftRail={{
+                    tick: { fontSize: 11 },
+                    tickFormatter: (v: number) => formatAmountFromLakhs(Number(v)),
+                  }}
+                  rightRail={{ tick: { fontSize: 11 } }}
+                >
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={60} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v: number) => formatAmountFromRupees(v, 0)} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                    <XAxis dataKey={xKey} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" angle={-45} textAnchor="end" height={60} />
                     <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8 }} />
                     <Legend />
                     {(metricsFilter === 'all' || metricsFilter === 'spend') && <Line yAxisId="left" type="monotone" dataKey="spend" stroke="hsl(var(--metric-spend))" strokeWidth={2} name="Spend (₹)" dot={{ r: 3 }} />}
                     {(metricsFilter === 'all' || metricsFilter === 'leads') && <Line yAxisId="right" type="monotone" dataKey="leads" stroke="hsl(var(--metric-leads))" strokeWidth={2} name="Leads/Conversion" dot={{ r: 3 }} />}
                     {(metricsFilter === 'all' || metricsFilter === 'cpa') && <Line yAxisId="right" type="monotone" dataKey="cpa" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="5 5" name="CPA (₹)" dot={{ r: 2 }} />}
-                  </ComposedChart>
-                </ResponsiveContainer>
+                </DualYAxisScrollableComposedChart>
+                </div>
               </CardContent>
             </Card>
 
@@ -176,29 +245,36 @@ const ProjectDetail = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Platform</TableHead>
-                      {timelineData.slice(0, 12).map(d => <TableHead key={d.month} className="text-right text-xs">{d.month.split(' ')[0]} {d.month.split(' ')[1]?.slice(2)}</TableHead>)}
+                      {timelineSeries.slice(0, 12).map((d) => {
+                        const lbl = (d as { period?: string; month?: string }).period ?? (d as { month?: string }).month ?? "";
+                        return (
+                          <TableHead key={lbl} className="text-right text-xs max-w-[72px] truncate" title={lbl}>
+                            {lbl.length > 10 ? `${lbl.slice(0, 9)}…` : lbl}
+                          </TableHead>
+                        );
+                      })}
                       <TableHead className="text-right font-bold">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow className="bg-primary/5">
                       <TableCell className="font-medium">All Platforms</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.spend)}</TableCell>)}
+                      {timelineSeries.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromLakhs(d.spend)}</TableCell>)}
                       <TableCell className="text-right font-bold">{project.spend}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">Spend</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.spend)}</TableCell>)}
+                      {timelineSeries.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromLakhs(d.spend)}</TableCell>)}
                       <TableCell className="text-right text-[13px] font-medium">{project.spend}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">Leads/Conversion</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{d.leads}</TableCell>)}
+                      {timelineSeries.map((d, i) => <TableCell key={i} className="text-right text-xs">{d.leads}</TableCell>)}
                       <TableCell className="text-right text-[13px] font-medium">{project.leads.toLocaleString("en-IN")}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="text-muted-foreground text-xs">CPA</TableCell>
-                      {timelineData.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.cpa, 0)}</TableCell>)}
+                      {timelineSeries.map((d, i) => <TableCell key={i} className="text-right text-xs">{formatAmountFromRupees(d.cpa ?? 0, 0)}</TableCell>)}
                       <TableCell className="text-right text-[13px] font-medium">{project.cpl}</TableCell>
                     </TableRow>
                   </TableBody>
@@ -255,16 +331,24 @@ const ProjectDetail = () => {
 
               <div>
                 <h5 className="font-semibold mb-3 text-center">Spend & Conversion Trend</h5>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={timelineData.slice(-6)}>
+                <div className="w-full min-w-0">
+                <TimeSeriesChartScroll
+                  dataLength={Math.max(timelineSeries.slice(-6).length, 1)}
+                  granularity={timelineGranularity}
+                  heightClassName="h-[250px]"
+                >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={timelineSeries.slice(-6)}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Bar dataKey="spend" fill="hsl(var(--primary) / 0.7)" name="Spend" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="leads" fill="hsl(var(--secondary) / 0.7)" name="Leads" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
+                </TimeSeriesChartScroll>
+                </div>
               </div>
 
               <div>

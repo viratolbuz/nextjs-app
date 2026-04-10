@@ -58,7 +58,7 @@ import PermissionGate from "@/components/shared/PermissionGate";
 import PremiumKpiCard, {
   type KpiCardData,
 } from "@/components/shared/PremiumKpiCard";
-import { DateRangePicker, useDateRange } from "@/contexts/DateRangeContext";
+import { DateRangeWithAdjust, useDateRange } from "@/contexts/DateRangeContext";
 import { parseISO } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -385,8 +385,8 @@ const Projects = () => {
             campaigns across all platforms
           </p>
         </div>
-        <div className="flex gap-2 items-center">
-          <DateRangePicker scope="projects" className="w-[150px]" />
+        <div className="flex gap-2 items-center flex-wrap justify-end">
+          <DateRangeWithAdjust scope="projects" pickerClassName="w-[150px]" />
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
