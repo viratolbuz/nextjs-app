@@ -29,14 +29,10 @@ import {
 } from "lucide-react";
 import {
   XAxis,
-  YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  ComposedChart,
   Line,
   Area,
-  Legend,
 } from "recharts";
 import ReportFilters from "@/components/shared/ReportFilters";
 // PremiumKpiCard intentionally not used for Platform KPI cards (uses existing Card layout)
@@ -45,13 +41,19 @@ import InteractiveLegend, {
   useHiddenSeries,
 } from "@/components/shared/InteractiveLegend";
 import {
-  DateRangePicker,
+  DateRangeWithAdjust,
   useDateRange,
   createTimeBuckets,
   getBucketKey,
-  getGranularityFromPreset,
   parsePerformanceEntryDate,
+  clampAdjustForRange,
 } from "@/contexts/DateRangeContext";
+import {
+  DualYAxisScrollableComposedChart,
+  maxFromNumericKeys,
+} from "@/components/shared/DualYAxisScrollableComposedChart";
+import { ReportMatrixScrollTable } from "@/components/shared/ReportMatrixScrollTable";
+import { formatReportMonthHeader } from "@/lib/reportTableFormat";
 import { parse } from "date-fns";
 import { formatAmountFromLakhs, formatAmountFromRupees } from "@/lib/amount";
 
@@ -290,7 +292,7 @@ const PlatformReports = () => {
     );
 
   const monthlyAgg = useMemo(() => {
-    const granularity = getGranularityFromPreset(state.preset);
+    const granularity = state.adjust;
     const buckets = createTimeBuckets(granularity, state.range);
     const rows = buckets.map((bucket) => ({
       period: bucket.label,
@@ -307,8 +309,7 @@ const PlatformReports = () => {
       if (rowIdx === undefined) return;
       const platformName = entry.platform;
       if (platformName in rows[rowIdx]) {
-        const valueInLakhs =
-          granularity === "hourly" ? entry.spend / 100000 / 24 : entry.spend / 100000;
+        const valueInLakhs = entry.spend / 100000;
         const current = Number((rows[rowIdx] as any)[platformName] ?? 0);
         (rows[rowIdx] as any)[platformName] = current + valueInLakhs;
         rows[rowIdx].total += valueInLakhs;
@@ -325,7 +326,33 @@ const PlatformReports = () => {
         ]),
       ),
     }));
-  }, [state.preset, state.range, filteredPlatformDetails, filterEntries]);
+  }, [state.adjust, state.range, filteredPlatformDetails, filterEntries]);
+
+  const platformTrendLegendPayload = useMemo(
+    () => [
+      ...filteredPlatformDetails.map((p, idx) => ({
+        value: p.name,
+        color: COLORS[idx % COLORS.length]!,
+      })),
+      { value: "Total", color: "hsl(var(--primary))" },
+    ],
+    [filteredPlatformDetails],
+  );
+
+  const platformLeftGhostKeys = useMemo(
+    () => filteredPlatformDetails.map((p) => p.name),
+    [filteredPlatformDetails],
+  );
+
+  const platformTrendLeftMax = useMemo(() => {
+    if (platformLeftGhostKeys.length === 0) return 1;
+    return maxFromNumericKeys(monthlyAgg, platformLeftGhostKeys, 1, 1.05);
+  }, [monthlyAgg, platformLeftGhostKeys]);
+
+  const platformTrendRightMax = useMemo(
+    () => maxFromNumericKeys(monthlyAgg, ["total"], 1, 1.08),
+    [monthlyAgg],
+  );
 
   const quarterlyGrouped = useMemo(() => {
     const quarters = [
@@ -381,7 +408,7 @@ const PlatformReports = () => {
             Cross-platform performance comparison
           </p>
         </div>
-        <DateRangePicker scope="reports-platform" className="w-auto" />
+        <DateRangeWithAdjust scope="reports-platform" pickerClassName="w-auto" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -518,8 +545,26 @@ const PlatformReports = () => {
               <TrendingUp className="w-4 h-4" />
               Platform Spend Trend (Monthly)
             </h4>
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={monthlyAgg}>
+            <div className="w-full min-w-0">
+            <DualYAxisScrollableComposedChart
+              data={monthlyAgg}
+              dataLength={monthlyAgg.length}
+              granularity={clampAdjustForRange(state.range, state.adjust)}
+              heightClassName="h-[400px]"
+              railWidthClassName="w-[52px] sm:w-[58px]"
+              leftMax={platformTrendLeftMax}
+              rightMax={platformTrendRightMax}
+              leftGhostDataKeys={platformLeftGhostKeys}
+              rightGhostDataKeys={["total"]}
+              leftRail={{
+                tick: { fontSize: 10 },
+                tickFormatter: (v) => formatAmountFromLakhs(Number(v)),
+              }}
+              rightRail={{
+                tick: { fontSize: 10 },
+                tickFormatter: (v) => formatAmountFromLakhs(Number(v)),
+              }}
+            >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -529,33 +574,12 @@ const PlatformReports = () => {
                   tick={{ fontSize: 10 }}
                   stroke="hsl(var(--muted-foreground))"
                 />
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                  tickFormatter={(v) => formatAmountFromLakhs(Number(v))}
-                />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   formatter={(val: any, name: string) => [
                     formatCurrency(val),
                     name,
                   ]}
-                />
-                <Legend
-                  content={
-                    <InteractiveLegend
-                      hiddenSeries={hiddenSeries}
-                      onToggle={toggleSeries}
-                    />
-                  }
                 />
                 {filteredPlatformDetails.map((p, idx) => (
                   <Area
@@ -582,27 +606,31 @@ const PlatformReports = () => {
                   name="Total"
                   hide={hiddenSeries.has("Total")}
                 />
-              </ComposedChart>
-            </ResponsiveContainer>
+            </DualYAxisScrollableComposedChart>
+            <InteractiveLegend
+              payload={platformTrendLegendPayload}
+              hiddenSeries={hiddenSeries}
+              onToggle={toggleSeries}
+            />
+            </div>
           </div>
 
-          <div className="mt-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+          <ReportMatrixScrollTable>
+              <table className="w-full text-sm min-w-max">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
+                  <th className="text-left py-2 px-3 font-semibold sticky left-0 z-30 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.12)]">
                     Platform
                   </th>
                   {visibleMonthIndexes.map((idx) => (
                     <th
                       key={monthLabels[idx]}
-                      className="text-right py-2 px-2 font-medium text-xs"
+                      className="text-right py-2 px-2 font-medium text-xs min-w-[72px] whitespace-nowrap"
                     >
-                      {monthLabels[idx].split(" ")[0]}
+                      {formatReportMonthHeader(monthLabels[idx]!)}
                     </th>
                   ))}
-                  <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
+                  <th className="text-right py-2 px-3 font-semibold sticky right-0 z-30 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.12)]">
                     Total (₹L)
                   </th>
                 </tr>
@@ -613,26 +641,25 @@ const PlatformReports = () => {
                     key={item.name}
                     className="border-b border-border/50 hover:bg-muted/30"
                   >
-                    <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
+                    <td className="py-2 px-3 text-primary font-medium sticky left-0 z-20 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
                       {item.name}
                     </td>
                     {visibleMonthIndexes.map((idx) => {
                       const k = months[idx];
                       return (
-                      <td key={k} className="text-right py-2 px-2 text-xs">
+                      <td key={k} className="text-right py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums">
                         {(item[k] as number).toFixed(2)}
                       </td>
                       );
                     })}
-                    <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
+                    <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
                       {item.total.toFixed(2)}
                     </td>
                   </tr>
                 ))}
               </tbody>
               </table>
-            </div>
-          </div>
+          </ReportMatrixScrollTable>
         </CardContent>
       </Card>
 

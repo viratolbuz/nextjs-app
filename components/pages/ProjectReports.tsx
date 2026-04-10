@@ -21,44 +21,21 @@ import {
   AlertTriangle,
   TrendingUp,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ComposedChart,
-  Line,
-  Area,
-  Legend,
-} from "recharts";
-import ReportFilters from "@/components/shared/ReportFilters";
 import { GroupedFiltersPopover } from "@/components/shared/GroupedFiltersPopover";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
-import InteractiveLegend, {
-  useHiddenSeries,
-} from "@/components/shared/InteractiveLegend";
+import { useHiddenSeries } from "@/components/shared/InteractiveLegend";
 import {
-  DateRangePicker,
+  DateRangeWithAdjust,
   useDateRange,
   createTimeBuckets,
   getBucketKey,
-  getGranularityFromPreset,
+  clampAdjustForRange,
 } from "@/contexts/DateRangeContext";
+import { StatusOverviewSplitChart } from "@/components/shared/StatusOverviewSplitChart";
+import { ReportMatrixScrollTable } from "@/components/shared/ReportMatrixScrollTable";
+import { formatReportMonthHeader } from "@/lib/reportTableFormat";
 import { endOfMonth, parse, parseISO, startOfMonth } from "date-fns";
-
-const EXTENDED_HUES = [
-  22, 177, 45, 192, 350, 280, 30, 160, 120, 250, 10, 200, 60, 310, 80, 140,
-];
-const COLORS = EXTENDED_HUES.map(
-  (h, i) => `hsl(${h}, ${70 + (i % 3) * 10}%, ${50 + (i % 2) * 8}%)`,
-);
-const SOFT_COLORS = EXTENDED_HUES.map(
-  (h, i) => `hsl(${h}, ${50 + (i % 3) * 10}%, ${72 + (i % 2) * 5}%)`,
-);
 
 const months = [
   "apr",
@@ -110,12 +87,6 @@ const ProjectReports = () => {
   const [tablePage, setTablePage] = useState(1);
   const [tablePerPage, setTablePerPage] = useState(10);
   const { hiddenSeries, toggleSeries } = useHiddenSeries();
-
-  const toggleProject = (id: string) => {
-    setSelectedProjects((prev) =>
-      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id],
-    );
-  };
 
   const toggleProjectSort = (k: ProjectSortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -257,7 +228,7 @@ const ProjectReports = () => {
   );
 
   const statusMonthlyAgg = useMemo(() => {
-    const granularity = getGranularityFromPreset(state.preset);
+    const granularity = clampAdjustForRange(state.range, state.adjust);
     const buckets = createTimeBuckets(granularity, state.range);
     const seeded = buckets.map((bucket) => ({
       period: bucket.label,
@@ -294,27 +265,7 @@ const ProjectReports = () => {
     }
 
     return seeded;
-  }, [state.preset, state.range, filteredProjects]);
-
-  const quarterlyGrouped = useMemo(() => {
-    const quarters = [
-      { label: "Q1 (Apr-Jun 2025)", keys: ["apr", "may", "jun"] as const },
-      { label: "Q2 (Jul-Sep 2025)", keys: ["jul", "aug", "sep"] as const },
-      { label: "Q3 (Oct-Dec 2025)", keys: ["oct", "nov", "dec"] as const },
-      { label: "Q4 (Jan-Mar 2026)", keys: ["jan", "feb", "mar"] as const },
-    ];
-    return quarters.map((q) => {
-      const entry: Record<string, any> = { quarter: q.label };
-      let total = 0;
-      filteredProjectDetails.forEach((p) => {
-        const val = q.keys.reduce((sum, k) => sum + (p[k] as number), 0);
-        entry[p.name] = parseFloat(val.toFixed(2));
-        total += val;
-      });
-      entry.total = parseFloat(total.toFixed(2));
-      return entry;
-    });
-  }, [filteredProjectDetails]);
+  }, [state.adjust, state.range, filteredProjects]);
 
   const tooltipStyle = {
     background: "hsl(var(--card))",
@@ -322,11 +273,6 @@ const ProjectReports = () => {
     borderRadius: 12,
     boxShadow: "0 8px 32px hsl(var(--foreground) / 0.1)",
   };
-  const topProjectsChart = filteredProjects.slice(0, 6).map((p) => ({
-    name: p.name.length > 12 ? p.name.slice(0, 12) + "…" : p.name,
-    spend: parseFloat(p.spend.replace(/[₹L]/g, "")),
-    revenue: parseFloat(p.revenue.replace(/[₹L]/g, "")),
-  }));
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -339,7 +285,7 @@ const ProjectReports = () => {
             All {projects.length} campaigns ranked by performance
           </p>
         </div>
-        <DateRangePicker scope="reports-project" className="w-auto" />
+        <DateRangeWithAdjust scope="reports-project" pickerClassName="w-auto" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -355,44 +301,6 @@ const ProjectReports = () => {
           />
         ))}
       </div>
-      {/* 
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="font-semibold mb-4">
-            Top Projects — Spend vs Revenue
-          </h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={topProjectsChart}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 10 }}
-                stroke="hsl(var(--muted-foreground))"
-              />
-              <YAxis
-                tick={{ fontSize: 11 }}
-                stroke="hsl(var(--muted-foreground))"
-              />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar
-                dataKey="spend"
-                fill="hsl(var(--primary))"
-                name="Spend (₹L)"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="revenue"
-                fill="hsl(var(--secondary))"
-                name="Revenue (₹L)"
-                radius={[4, 4, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card> */}
 
       <Card className="border-border/50">
         <CardContent className="p-6">
@@ -437,92 +345,34 @@ const ProjectReports = () => {
               <TrendingUp className="w-4 h-4" />
               Project Status Overview (Active, Inactive, Hold)
             </h4>
-            <ResponsiveContainer width="100%" height={400}>
-              <ComposedChart data={statusMonthlyAgg}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                />
-                <XAxis
-                  dataKey="period"
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                />
-                <YAxis
-                  yAxisId="left"
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  tick={{ fontSize: 10 }}
-                  stroke="hsl(var(--muted-foreground))"
-                />
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                />
-                <Legend
-                  content={
-                    <InteractiveLegend
-                      hiddenSeries={hiddenSeries}
-                      onToggle={toggleSeries}
-                    />
-                  }
-                />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="Active"
-                  stroke="hsl(var(--metric-spend))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  name="Active"
-                  hide={hiddenSeries.has("Active")}
-                />
-                <Area
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="Hold"
-                  stroke="hsl(var(--metric-revenue))"
-                  fill="hsl(var(--metric-revenue) / 0.15)"
-                  strokeWidth={2}
-                  name="Hold"
-                  hide={hiddenSeries.has("Hold")}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="Inactive"
-                  stroke="hsl(var(--metric-leads))"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  name="Inactive"
-                  hide={hiddenSeries.has("Inactive")}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <StatusOverviewSplitChart
+              data={statusMonthlyAgg}
+              dataLength={statusMonthlyAgg.length}
+              granularity={clampAdjustForRange(state.range, state.adjust)}
+              heightClassName="h-[400px]"
+              hiddenSeries={hiddenSeries}
+              toggleSeries={toggleSeries}
+              tooltipStyle={tooltipStyle}
+            />
+          <ReportMatrixScrollTable>
+              <table className="w-full text-sm min-w-max">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3 font-semibold sticky left-0 z-20 bg-card min-w-[220px]">
+                    <th className="text-left py-2 px-3 font-semibold sticky left-0 z-30 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.12)]">
                       Project Name
                     </th>
-                    <th className="text-left py-2 px-3 font-semibold sticky left-[220px] z-20 bg-card min-w-[120px]">
+                    <th className="text-left py-2 px-3 font-semibold sticky left-[220px] z-30 bg-card w-[120px] min-w-[120px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.12)]">
                       Status
                     </th>
                     {visibleMonthIndexes.map((idx) => (
                       <th
                         key={monthLabels[idx]}
-                        className="text-right py-2 px-2 font-medium text-xs"
+                        className="text-right py-2 px-2 font-medium text-xs min-w-[72px] whitespace-nowrap"
                       >
-                        {monthLabels[idx].split(" ")[0]}
+                        {formatReportMonthHeader(monthLabels[idx]!)}
                       </th>
                     ))}
-                    <th className="text-right py-2 px-3 font-semibold sticky right-0 z-20 bg-card min-w-[120px]">
+                    <th className="text-right py-2 px-3 font-semibold sticky right-0 z-30 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.12)]">
                       Total (₹L)
                     </th>
                   </tr>
@@ -535,10 +385,10 @@ const ProjectReports = () => {
                         key={item.name}
                         className="border-b border-border/50 hover:bg-muted/30"
                       >
-                        <td className="py-2 px-3 text-primary font-medium sticky left-0 z-10 bg-card min-w-[220px]">
+                        <td className="py-2 px-3 text-primary font-medium sticky left-0 z-20 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
                           {item.name}
                         </td>
-                        <td className="py-2 px-3 sticky left-[220px] z-10 bg-card min-w-[120px]">
+                        <td className="py-2 px-3 sticky left-[220px] z-20 bg-card w-[120px] min-w-[120px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
                           <Badge variant={
                             proj?.status === "Active" ? "success" : proj?.status === "Inactive" ? "destructive" : "secondary"
                           }>
@@ -548,12 +398,12 @@ const ProjectReports = () => {
                         {visibleMonthIndexes.map((idx) => {
                           const k = months[idx];
                           return (
-                            <td key={k} className="text-right py-2 px-2 text-xs">
+                            <td key={k} className="text-right py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums">
                               {(item[k] as number).toFixed(2)}
                             </td>
                           );
                         })}
-                        <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-10 bg-card min-w-[120px]">
+                        <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
                           {item.total.toFixed(2)}
                         </td>
                       </tr>
@@ -561,7 +411,7 @@ const ProjectReports = () => {
                   })}
                 </tbody>
               </table>
-            </div>
+          </ReportMatrixScrollTable>
 
             <div className="mt-4">
               <AdvancedPagination
@@ -570,7 +420,7 @@ const ProjectReports = () => {
                 totalItems={filteredProjectDetails.length}
                 perPage={monthTablePageSize}
                 onPageChange={setMonthTablePage}
-                onPerPageChange={() => { }}
+                onPerPageChange={() => {}}
               />
             </div>
           </div>
