@@ -32,6 +32,7 @@ export interface Project {
   type: string;
   platforms: string[];
   manager: string;
+  user: string;
   budget: string;
   budgetUsed: number;
   status: 'Active' | 'Hold' | 'Inactive';

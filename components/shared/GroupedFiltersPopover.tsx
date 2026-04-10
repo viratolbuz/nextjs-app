@@ -3,10 +3,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { ChevronDown, ListFilter } from "lucide-react";
+import { ChevronDown, ListFilter, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "../ui/input";
 
 export type FilterGroupOption = string | { value: string; label: string };
 
@@ -44,7 +49,11 @@ export function GroupedFiltersPopover({
   triggerClassName,
 }: GroupedFiltersPopoverProps) {
   const [open, setOpen] = useState(false);
-  const totalSelected = Object.values(selections).reduce((n, arr) => n + arr.length, 0);
+  const [search, setSearch] = useState("");
+  const totalSelected = Object.values(selections).reduce(
+    (n, arr) => n + arr.length,
+    0,
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,7 +83,9 @@ export function GroupedFiltersPopover({
         sideOffset={4}
       >
         <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2 shrink-0">
-          <span className="text-xs font-semibold text-muted-foreground">Refine list</span>
+          <span className="text-xs font-semibold text-muted-foreground">
+            Refine list
+          </span>
           {totalSelected > 0 && onClearAll && (
             <Button
               type="button"
@@ -87,33 +98,62 @@ export function GroupedFiltersPopover({
             </Button>
           )}
         </div>
+        <div className="px-3 py-2 border-b border-border relative">
+          <Input
+            placeholder="Search filters..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 text-xs"
+          />
+          {search && search.length > 0 && (
+            <X
+              className="absolute right-3 top-3 text-primary"
+              onClick={() => setSearch("")}
+            />
+          )}
+        </div>
         <div className="overflow-y-auto flex-1 p-2 space-y-3 scrollbar-themed">
-          {groups.map((group, idx) => (
-            <div key={group.id}>
-              {idx > 0 && <Separator className="mb-3" />}
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide px-2 mb-2">
-                {group.label}
-              </p>
-              <div className="space-y-0.5">
-                {group.options.map((opt) => {
-                  const v = optionValue(opt);
-                  const label = optionLabel(opt);
-                  return (
-                    <label
-                      key={`${group.id}-${v}`}
-                      className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-md touch-manipulation"
-                    >
-                      <Checkbox
-                        checked={selections[group.id]?.includes(v) ?? false}
-                        onCheckedChange={() => onToggle(group.id, v)}
-                      />
-                      <span className="truncate">{label}</span>
-                    </label>
-                  );
-                })}
+          {groups.map((group, idx) => {
+            const filteredOptions = group.options.filter((opt) =>
+              optionLabel(opt).toLowerCase().includes(search.toLowerCase()),
+            );
+
+            return (
+              <div key={group.id}>
+                {idx > 0 && <Separator className="mb-3" />}
+
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide px-2 mb-2">
+                  {group.label}
+                </p>
+
+                <div className="space-y-0.5">
+                  {filteredOptions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground px-2 py-1">
+                      No results found
+                    </p>
+                  ) : (
+                    filteredOptions.map((opt) => {
+                      const v = optionValue(opt);
+                      const label = optionLabel(opt);
+
+                      return (
+                        <label
+                          key={`${group.id}-${v}`}
+                          className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-muted rounded-md"
+                        >
+                          <Checkbox
+                            checked={selections[group.id]?.includes(v) ?? false}
+                            onCheckedChange={() => onToggle(group.id, v)}
+                          />
+                          <span className="truncate">{label}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </PopoverContent>
     </Popover>

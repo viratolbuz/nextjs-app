@@ -33,8 +33,7 @@ const ChartSection = () => {
   );
 
   const leftMax = useMemo(
-    () =>
-      maxFromNumericKeys(chartSeries, ["spend", "revenue", "cpa"], 1, 1.05),
+    () => maxFromNumericKeys(chartSeries, ["spend", "revenue", "cpa"], 1, 1.05),
     [chartSeries],
   );
   const rightMax = useMemo(
@@ -110,20 +109,17 @@ const ChartSection = () => {
             <h3 className="text-lg font-display font-bold">
               Performance Overview
             </h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              <span className="font-medium text-foreground">{presetLabel}</span>
-              <span className="mx-1.5 opacity-40">·</span>
-              {adjustLabel}
-              <span className="mx-1.5 opacity-40">·</span>
-              {formatRangeSpan()}
-            </p>
           </div>
         </div>
 
         <div className="w-full min-w-0">
           <div className="flex items-center justify-between px-4 pb-1">
-            <span className="text-[10px] text-muted-foreground">Spend & revenue (₹ L)</span>
-            <span className="text-[10px] text-muted-foreground">Leads, ROAS &amp; CPA</span>
+            <span className="text-[10px] text-muted-foreground">
+              Spend & revenue (₹ L)
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              Leads, ROAS &amp; CPA
+            </span>
           </div>
           <DualYAxisScrollableComposedChart
             data={chartSeries}
@@ -145,10 +141,7 @@ const ChartSection = () => {
               width: 52,
             }}
           >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="hsl(var(--border))"
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey={xKey}
               tick={{ fontSize: 11 }}

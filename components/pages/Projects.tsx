@@ -35,7 +35,17 @@ import {
   users,
   platforms,
 } from "@/services/appData.service";
-import { Search, Plus, CreditCard as Edit, Trash2, Eye, FolderKanban, CircleCheck as CheckCircle, CirclePause as PauseCircle, Minus } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  FolderKanban,
+  CircleCheck as CheckCircle,
+  CirclePause as PauseCircle,
+  Minus,
+} from "lucide-react";
 import {
   GroupedFiltersPopover,
   type FilterSelections,
@@ -46,7 +56,11 @@ import PermissionGate from "@/components/shared/PermissionGate";
 import PremiumKpiCard, {
   type KpiCardData,
 } from "@/components/shared/PremiumKpiCard";
-import { DateRangeWithAdjust, useDateRange } from "@/contexts/DateRangeContext";
+import {
+  DateRangePicker,
+  DateRangeWithAdjust,
+  useDateRange,
+} from "@/contexts/DateRangeContext";
 import { parseISO } from "date-fns";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -73,6 +87,7 @@ type ProjectListSortKey =
   | "client"
   | "type"
   | "manager"
+  | "user"
   | "budget"
   | "status"
   | "created";
@@ -144,7 +159,7 @@ const Projects = () => {
       {
         id: "user",
         label: "User",
-        options: users.map((u) => u.name).sort(),
+        options: [...new Set(projectList.map((p) => p.user))].sort(),
       },
     ],
     [projectList],
@@ -182,6 +197,7 @@ const Projects = () => {
           k === "client" ||
           k === "type" ||
           k === "manager" ||
+          k === "user" ||
           k === "status"
           ? "asc"
           : "desc",
@@ -217,7 +233,7 @@ const Projects = () => {
     if (mg.length) list = list.filter((p) => mg.includes(p.manager));
     if (co.length) list = list.filter((p) => co.includes(p.country));
     if (cl.length) list = list.filter((p) => cl.includes(p.client));
-    if (us.length) list = list.filter((p) => us.includes(p.manager));
+    if (us.length) list = list.filter((p) => us.includes(p.user));
     const mul = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
       switch (sortKey) {
@@ -229,6 +245,8 @@ const Projects = () => {
           return mul * a.type.localeCompare(b.type);
         case "manager":
           return mul * a.manager.localeCompare(b.manager);
+        case "user":
+          return mul * a.user.localeCompare(b.user);
         case "status":
           return mul * a.status.localeCompare(b.status);
         case "budget":
@@ -298,7 +316,10 @@ const Projects = () => {
       ? users.find((u) => u.id === assignments.find((a) => a.userId)?.userId)
           ?.name || ""
       : "";
-
+    const user = assignments.find((a) => a.userId)?.userId
+      ? users.find((u) => u.id === assignments.find((a) => a.userId)?.userId)
+          ?.name || ""
+      : "";
     if (editProject) {
       setProjectList((prev) =>
         prev.map((p) =>
@@ -312,6 +333,7 @@ const Projects = () => {
                 status: formData.status,
                 platforms: platNames.length > 0 ? platNames : p.platforms,
                 manager: manager || p.manager,
+                user: manager || p.user,
               }
             : p,
         ),
@@ -324,6 +346,7 @@ const Projects = () => {
         type: formData.type,
         platforms: platNames,
         manager: manager || "Unassigned",
+        user: user || "Unassigned",
         budget: "₹0",
         budgetUsed: 0,
         spend: "₹0",
@@ -374,7 +397,9 @@ const Projects = () => {
           </p>
         </div>
         <div className="flex gap-2 items-center flex-wrap justify-end">
-          <DateRangeWithAdjust scope="projects" pickerClassName="w-[150px]" />
+          {/* <DateRangeWithAdjust scope="projects" pickerClassName="w-[150px]" /> */}
+          <DateRangePicker scope="projects" className="w-auto" />
+          {/* <AdjustGranularityDropdown scope={scope} /> */}
           <PermissionGate permission="Create_projects">
             <Button size="sm" onClick={openCreate}>
               <Plus className="w-4 h-4 mr-1" />
@@ -386,11 +411,11 @@ const Projects = () => {
 
       <div
         className="grid
-  grid-cols-1
-  md:grid-cols-2
-  xl:grid-cols-3
-  2xl:grid-cols-3
-  gap-4"
+    grid-cols-1
+    md:grid-cols-2
+    xl:grid-cols-3
+    2xl:grid-cols-3
+    gap-4"
       >
         {(
           [
@@ -494,7 +519,12 @@ const Projects = () => {
                 >
                   Manager{projSortIndicator("manager")}
                 </TableHead>
-                <TableHead className="font-bold">Assigned User</TableHead>
+                <TableHead
+                  className="font-bold cursor-pointer select-none hover:bg-muted/50"
+                  onClick={() => toggleProjectListSort("user")}
+                >
+                  User{projSortIndicator("user")}
+                </TableHead>
                 <TableHead
                   className="font-bold cursor-pointer select-none hover:bg-muted/50"
                   onClick={() => toggleProjectListSort("status")}
@@ -545,7 +575,7 @@ const Projects = () => {
                   <TableCell className="text-sm font-medium">
                     {p.manager}
                   </TableCell>
-                  <TableCell className="text-sm">{p.manager}</TableCell>
+                  <TableCell className="text-sm">{p.user}</TableCell>
                   <TableCell>
                     <Badge
                       className={`text-[12px] border-0 font-bold ${STATUS_COLORS[p.status] || ""}`}
@@ -930,7 +960,12 @@ const Projects = () => {
                                         ...x,
                                         accountIds: x.accountIds.map((a, k) =>
                                           k === ai
-                                            ? { ...a, status: v as "Active" | "Inactive" }
+                                            ? {
+                                                ...a,
+                                                status: v as
+                                                  | "Active"
+                                                  | "Inactive",
+                                              }
                                             : a,
                                         ),
                                       }
@@ -985,7 +1020,10 @@ const Projects = () => {
                 <Select
                   value={formData.status}
                   onValueChange={(v) =>
-                    setFormData((f) => ({ ...f, status: v as Project["status"] }))
+                    setFormData((f) => ({
+                      ...f,
+                      status: v as Project["status"],
+                    }))
                   }
                 >
                   <SelectTrigger>

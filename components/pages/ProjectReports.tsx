@@ -14,7 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { projects, projectChartData } from "@/services/appData.service";
-import { Eye, CircleCheck as CheckCircle, CirclePause as PauseCircle, TriangleAlert as AlertTriangle, TrendingUp } from "lucide-react";
+import {
+  Eye,
+  CircleCheck as CheckCircle,
+  CirclePause as PauseCircle,
+  TriangleAlert as AlertTriangle,
+  TrendingUp,
+} from "lucide-react";
 import { GroupedFiltersPopover } from "@/components/shared/GroupedFiltersPopover";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import AdvancedPagination from "@/components/shared/AdvancedPagination";
@@ -171,7 +177,9 @@ const ProjectReports = () => {
 
   const kpis = useMemo(() => {
     const active = filteredProjects.filter((p) => p.status === "Active").length;
-    const inactive = filteredProjects.filter((p) => p.status === "Inactive").length;
+    const inactive = filteredProjects.filter(
+      (p) => p.status === "Inactive",
+    ).length;
     const hold = filteredProjects.filter((p) => p.status === "Hold").length;
     return [
       {
@@ -248,11 +256,14 @@ const ProjectReports = () => {
     });
 
     // Keep chart readable when all projects share a single activity date.
-    const hasAnyPoint = seeded.some((row) => row.Active || row.Inactive || row.Hold);
+    const hasAnyPoint = seeded.some(
+      (row) => row.Active || row.Inactive || row.Hold,
+    );
     if (!hasAnyPoint) {
       const fallback = {
         Active: filteredProjects.filter((p) => p.status === "Active").length,
-        Inactive: filteredProjects.filter((p) => p.status === "Inactive").length,
+        Inactive: filteredProjects.filter((p) => p.status === "Inactive")
+          .length,
         Hold: filteredProjects.filter((p) => p.status === "Hold").length,
       };
       return seeded.map((row) => ({ ...row, ...fallback }));
@@ -348,7 +359,7 @@ const ProjectReports = () => {
               toggleSeries={toggleSeries}
               tooltipStyle={tooltipStyle}
             />
-          <ReportMatrixScrollTable>
+            <ReportMatrixScrollTable>
               <table className="w-full text-sm min-w-max">
                 <thead>
                   <tr className="border-b border-border">
@@ -372,45 +383,67 @@ const ProjectReports = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthTableRows.map((item) => {
-                    const proj = projects.find((p) => p.name === item.name);
-                    return (
-                      <tr
-                        key={item.name}
-                        className="border-b border-border/50 hover:bg-muted/30"
+                  {monthTableRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={2 + visibleMonthIndexes.length + 1}
+                        className="text-center py-6 text-muted-foreground"
                       >
-                        <td className="py-2 px-3 sticky left-0 z-20 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
-                          <button
-                            className="text-primary font-medium hover:underline cursor-pointer text-left w-full"
-                            onClick={() => proj && router.push(`/projects/${proj.id}`)}
-                          >
-                            {item.name}
-                          </button>
-                        </td>
-                        <td className="py-2 px-3 sticky left-[220px] z-20 bg-card w-[120px] min-w-[120px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
-                          <Badge variant={
-                            proj?.status === "Active" ? "success" : proj?.status === "Inactive" ? "destructive" : "secondary"
-                          }>
-                            {proj?.status ?? "Active"}
-                          </Badge>
-                        </td>
-                        {visibleMonthIndexes.map((idx) => {
-                          const k = months[idx];
-                          return (
-                            <td key={k} className="text-right py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums">
-                              {(item[k] as number).toFixed(2)}
-                            </td>
-                          );
-                        })}
-                        <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
-                          {item.total.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        No data for selected filters/range.
+                      </td>
+                    </tr>
+                  ) : (
+                    monthTableRows.map((item) => {
+                      const proj = projects.find((p) => p.name === item.name);
+                      return (
+                        <tr
+                          key={item.name}
+                          className="border-b border-border/50 hover:bg-muted/30"
+                        >
+                          <td className="py-2 px-3 sticky left-0 z-20 bg-card w-[220px] min-w-[220px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
+                            <button
+                              className="text-primary font-medium hover:underline cursor-pointer text-left w-full"
+                              onClick={() =>
+                                proj && router.push(`/projects/${proj.id}`)
+                              }
+                            >
+                              {item.name}
+                            </button>
+                          </td>
+                          <td className="py-2 px-3 sticky left-[220px] z-20 bg-card w-[120px] min-w-[120px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
+                            <Badge
+                              variant={
+                                proj?.status === "Active"
+                                  ? "success"
+                                  : proj?.status === "Inactive"
+                                    ? "destructive"
+                                    : "secondary"
+                              }
+                            >
+                              {proj?.status ?? "Active"}
+                            </Badge>
+                          </td>
+                          {visibleMonthIndexes.map((idx) => {
+                            const k = months[idx];
+                            return (
+                              <td
+                                key={k}
+                                className="text-right py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums"
+                              >
+                                {(item[k] as number).toFixed(2)}
+                              </td>
+                            );
+                          })}
+                          <td className="text-right py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
+                            {item.total.toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
-          </ReportMatrixScrollTable>
+            </ReportMatrixScrollTable>
 
             <div className="mt-4">
               <AdvancedPagination
@@ -496,13 +529,26 @@ const ProjectReports = () => {
                   (tablePage - 1) * tablePerPage,
                   tablePage * tablePerPage,
                 );
+
+                if (paginatedProjects.length === 0) {
+                  return (
+                    <TableRow>
+                      <TableCell colSpan={11} className="text-center py-6">
+                        No projects for selected filters/range.
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
                 return paginatedProjects.map((p, i) => {
                   const globalIdx = (tablePage - 1) * tablePerPage + i;
+
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-bold">
                         {globalIdx + 1}
                       </TableCell>
+
                       <TableCell>
                         <button
                           className="font-medium text-primary hover:underline cursor-pointer text-left"
@@ -511,26 +557,35 @@ const ProjectReports = () => {
                           {p.name}
                         </button>
                       </TableCell>
+
                       <TableCell className="text-sm">{p.client}</TableCell>
+
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
                           {p.type}
                         </Badge>
                       </TableCell>
+
                       <TableCell className="font-semibold">{p.spend}</TableCell>
                       <TableCell>{p.revenue}</TableCell>
                       <TableCell>{p.leads.toLocaleString("en-IN")}</TableCell>
                       <TableCell>{p.cpl}</TableCell>
                       <TableCell className="font-semibold">{p.roas}</TableCell>
+
                       <TableCell>
                         <Badge
                           variant={
-                            p.status === "Active" ? "success" : p.status === "Inactive" ? "destructive" : "secondary"
+                            p.status === "Active"
+                              ? "success"
+                              : p.status === "Inactive"
+                                ? "destructive"
+                                : "secondary"
                           }
                         >
                           {p.status}
                         </Badge>
                       </TableCell>
+
                       <TableCell>
                         <Button
                           variant="ghost"

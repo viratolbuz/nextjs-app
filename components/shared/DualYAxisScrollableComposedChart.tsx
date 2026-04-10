@@ -7,12 +7,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import {
-  ComposedChart,
-  Line,
-  ResponsiveContainer,
-  YAxis,
-} from "recharts";
+import { ComposedChart, Line, ResponsiveContainer, YAxis } from "recharts";
 import type { YAxisProps } from "recharts";
 import type { AdjustGranularity } from "@/contexts/DateRangeContext";
 import { scrollablePlotAreaInnerStyle } from "@/components/shared/TimeSeriesChartScroll";
@@ -128,7 +123,10 @@ export function DualYAxisScrollableComposedChart({
           )}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
+            <ComposedChart
+              data={data}
+              margin={{ ...chartMargin, left: 0, right: 0 }}
+            >
               <YAxis
                 yAxisId="left"
                 domain={[0, leftMax]}
@@ -136,7 +134,7 @@ export function DualYAxisScrollableComposedChart({
                 stroke={leftRail.stroke ?? "hsl(var(--muted-foreground))"}
                 tickFormatter={leftRail.tickFormatter}
                 label={leftRail.label}
-                width={leftRail.width ?? 44}
+                width={58}
               />
               <GhostLines yAxisId="left" dataKeys={leftGhostDataKeys} />
             </ComposedChart>
@@ -148,11 +146,14 @@ export function DualYAxisScrollableComposedChart({
           className="min-h-0 min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain scrollbar-themed"
           style={{ WebkitOverflowScrolling: "touch" } as CSSProperties}
         >
-          <div className={cn("min-h-0", heightClassName)} style={centerInnerStyle}>
+          <div
+            className={cn("min-h-0", heightClassName)}
+            style={centerInnerStyle}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart
                 data={data}
-                margin={{ ...chartMargin, left: 0, right: 0 }}
+                margin={{ top: 0, right: 0, left: 0, bottom: 6 }}
               >
                 <YAxis yAxisId="left" hide domain={[0, leftMax]} />
                 <YAxis
@@ -175,7 +176,10 @@ export function DualYAxisScrollableComposedChart({
           )}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ ...chartMargin, left: 0, right: 0 }}>
+            <ComposedChart
+              data={data}
+              margin={{ ...chartMargin, left: 0, right: 0 }}
+            >
               <YAxis
                 yAxisId="right"
                 orientation="right"
@@ -184,7 +188,7 @@ export function DualYAxisScrollableComposedChart({
                 stroke={rightRail.stroke ?? "hsl(var(--muted-foreground))"}
                 tickFormatter={rightRail.tickFormatter}
                 label={rightRail.label}
-                width={rightRail.width ?? 44}
+                width={58}
               />
               <GhostLines yAxisId="right" dataKeys={rightGhostDataKeys} />
             </ComposedChart>
@@ -201,9 +205,7 @@ export function maxFromNumericKeys(
   floor = 1,
   pad = 1.08,
 ): number {
-  const vals = rows.flatMap((row) =>
-    keys.map((k) => Number(row[k]) || 0),
-  );
+  const vals = rows.flatMap((row) => keys.map((k) => Number(row[k]) || 0));
   const m = Math.max(floor, ...vals);
   return m * pad;
 }

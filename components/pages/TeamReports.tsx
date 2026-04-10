@@ -20,8 +20,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { users, chartData, projects, performanceEntries } from "@/services/appData.service";
-import { Eye, TrendingUp, DollarSign, Target, ChartBar as BarChart3, FolderKanban } from "lucide-react";
+import {
+  users,
+  chartData,
+  projects,
+  performanceEntries,
+} from "@/services/appData.service";
+import {
+  Eye,
+  TrendingUp,
+  DollarSign,
+  Target,
+  ChartBar as BarChart3,
+  FolderKanban,
+} from "lucide-react";
 import ReportFilters from "@/components/shared/ReportFilters";
 import PremiumKpiCard from "@/components/shared/PremiumKpiCard";
 import SwitchUserDropdown from "@/components/shared/SwitchUserDropdown";
@@ -159,9 +171,9 @@ const TeamReports = () => {
     const ratio = filteredUsers.length / (users.length || 1);
     const entriesInRange = filterEntries(performanceEntries);
     const totalSpend =
-      entriesInRange.reduce((sum, e) => sum + e.spend, 0) / 100000 * ratio;
+      (entriesInRange.reduce((sum, e) => sum + e.spend, 0) / 100000) * ratio;
     const totalRevenue =
-      entriesInRange.reduce((sum, e) => sum + e.revenue, 0) / 100000 * ratio;
+      (entriesInRange.reduce((sum, e) => sum + e.revenue, 0) / 100000) * ratio;
     const totalLeads =
       entriesInRange.reduce((sum, e) => sum + e.leads, 0) * ratio;
     const avgRoas = totalSpend > 0 ? totalRevenue / totalSpend : 0;
@@ -184,7 +196,11 @@ const TeamReports = () => {
         value: Math.round(totalLeads).toLocaleString("en-IN"),
         icon: BarChart3,
       },
-      { label: "Avg CPA", value: formatAmountFromRupees(Math.round(avgCpa), 0), icon: DollarSign },
+      {
+        label: "Avg CPA",
+        value: formatAmountFromRupees(Math.round(avgCpa), 0),
+        icon: DollarSign,
+      },
     ];
   }, [filterEntries, filteredUsers.length]);
 
@@ -209,7 +225,8 @@ const TeamReports = () => {
   const monthlyAgg = useMemo(() => {
     const granularity = state.adjust;
     const buckets = createTimeBuckets(granularity, state.range);
-    const ratio = filteredMonthlySpend.length / (chartData.userMonthlySpend.length || 1);
+    const ratio =
+      filteredMonthlySpend.length / (chartData.userMonthlySpend.length || 1);
     const seeded = buckets.map((bucket) => ({
       period: bucket.label,
       spend: 0,
@@ -280,7 +297,8 @@ const TeamReports = () => {
     );
     if (!userData) return chartData.performanceTrend;
     return monthLabels.map((month, i) => {
-      const spend = ((userData as unknown) as Record<string, number>)[months[i]] * 100000;
+      const spend =
+        (userData as unknown as Record<string, number>)[months[i]] * 100000;
       return {
         month,
         spend,
@@ -298,12 +316,7 @@ const TeamReports = () => {
   );
   const proxyTrendRightMax = useMemo(
     () =>
-      maxFromNumericKeys(
-        proxyUserChartData,
-        ["leads", "roas", "cpa"],
-        1,
-        1.08,
-      ),
+      maxFromNumericKeys(proxyUserChartData, ["leads", "roas", "cpa"], 1, 1.08),
     [proxyUserChartData],
   );
 
@@ -364,37 +377,37 @@ const TeamReports = () => {
                   </Select>
                 </div>
                 <div className="w-full min-w-0">
-                <DualYAxisScrollableComposedChart
-                  data={proxyUserChartData}
-                  dataLength={proxyUserChartData.length}
-                  granularity={clampAdjustForRange(state.range, state.adjust)}
-                  heightClassName="h-[320px]"
-                  railWidthClassName="w-[52px] sm:w-[58px]"
-                  leftMax={proxyTrendLeftMax}
-                  rightMax={proxyTrendRightMax}
-                  leftGhostDataKeys={["spend", "revenue"]}
-                  rightGhostDataKeys={["leads", "roas", "cpa"]}
-                  leftRail={{
-                    tick: { fontSize: 11 },
-                    tickFormatter: (v: number) =>
-                      formatAmountFromRupees(Number(v), 0),
-                  }}
-                  rightRail={{ tick: { fontSize: 11 } }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                  />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 10 }}
-                    stroke="hsl(var(--muted-foreground))"
-                    angle={-45}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend />
+                  <DualYAxisScrollableComposedChart
+                    data={proxyUserChartData}
+                    dataLength={proxyUserChartData.length}
+                    granularity={clampAdjustForRange(state.range, state.adjust)}
+                    heightClassName="h-[320px]"
+                    railWidthClassName="w-[52px] sm:w-[58px]"
+                    leftMax={proxyTrendLeftMax}
+                    rightMax={proxyTrendRightMax}
+                    leftGhostDataKeys={["spend", "revenue"]}
+                    rightGhostDataKeys={["leads", "roas", "cpa"]}
+                    leftRail={{
+                      tick: { fontSize: 11 },
+                      tickFormatter: (v: number) =>
+                        formatAmountFromRupees(Number(v), 0),
+                    }}
+                    rightRail={{ tick: { fontSize: 11 } }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--border))"
+                    />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 10 }}
+                      stroke="hsl(var(--muted-foreground))"
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Legend />
                     {(metricsFilter === "all" || metricsFilter === "spend") && (
                       <Line
                         yAxisId="left"
@@ -452,7 +465,7 @@ const TeamReports = () => {
                         dot={{ r: 2 }}
                       />
                     )}
-                </DualYAxisScrollableComposedChart>
+                  </DualYAxisScrollableComposedChart>
                 </div>
               </CardContent>
             </Card>
@@ -644,7 +657,7 @@ const TeamReports = () => {
       </div>
 
       <Card className="border-border/50 overflow-hidden">
-        <CardContent className="p-0">
+        <CardContent className="">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-4 px-4 pt-4 pb-2">
             <div className="flex flex-wrap items-center gap-2">
               <ReportFilters
@@ -659,22 +672,22 @@ const TeamReports = () => {
 
           <div>
             <div className="w-full min-w-0">
-            <DualYAxisScrollableComposedChart
-              data={monthlyAgg}
-              dataLength={monthlyAgg.length}
-              granularity={clampAdjustForRange(state.range, state.adjust)}
-              heightClassName="h-[400px]"
-              railWidthClassName="w-[52px] sm:w-[58px]"
-              leftMax={teamTrendLeftMax}
-              rightMax={teamTrendRightMax}
-              leftGhostDataKeys={["spend", "revenue", "cpa"]}
-              rightGhostDataKeys={["leads", "roas"]}
-              leftRail={{
-                tick: { fontSize: 10 },
-                tickFormatter: (v) => formatAmountFromLakhs(Number(v)),
-              }}
-              rightRail={{ tick: { fontSize: 10 } }}
-            >
+              <DualYAxisScrollableComposedChart
+                data={monthlyAgg}
+                dataLength={monthlyAgg.length}
+                granularity={clampAdjustForRange(state.range, state.adjust)}
+                heightClassName="h-[400px]"
+                railWidthClassName="w-[52px] sm:w-[58px]"
+                leftMax={teamTrendLeftMax}
+                rightMax={teamTrendRightMax}
+                leftGhostDataKeys={["spend", "revenue", "cpa"]}
+                rightGhostDataKeys={["leads", "roas"]}
+                leftRail={{
+                  tick: { fontSize: 10 },
+                  tickFormatter: (v) => formatAmountFromLakhs(Number(v)),
+                }}
+                rightRail={{ tick: { fontSize: 10 } }}
+              >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -749,17 +762,17 @@ const TeamReports = () => {
                   name="CPA (₹)"
                   hide={hiddenSeries.has("CPA (₹)")}
                 />
-            </DualYAxisScrollableComposedChart>
-            <div className="px-4 pb-3 pt-1">
-              <InteractiveLegend
-                payload={teamTrendLegendPayload}
-                hiddenSeries={hiddenSeries}
-                onToggle={toggleSeries}
-              />
-            </div>
+              </DualYAxisScrollableComposedChart>
+              <div className="px-4 pb-3 pt-1">
+                <InteractiveLegend
+                  payload={teamTrendLegendPayload}
+                  hiddenSeries={hiddenSeries}
+                  onToggle={toggleSeries}
+                />
+              </div>
             </div>
           </div>
-            <ReportMatrixScrollTable>
+          <ReportMatrixScrollTable>
             <table className="w-full text-sm min-w-max">
               <thead>
                 <tr className="border-b border-border text-center">
@@ -780,48 +793,57 @@ const TeamReports = () => {
                 </tr>
               </thead>
               <tbody>
-                {chartTableRows.map((item) => (
-                  <tr
-                    key={item.name}
-                    className="border-b border-border/50 hover:bg-muted/30"
-                  >
-                    <td className="py-2 px-3 sticky left-0 z-20 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
-                      <button
-                        className="text-primary font-medium hover:underline cursor-pointer text-left w-full"
-                        onClick={() => { const u = users.find(x => x.name === item.name); if (u) { setProxyView(u); setProxyTab("report"); } }}
-                      >
-                        {item.name}
-                      </button>
-                    </td>
-                    {visibleMonthIndexes.map((idx) => {
-                      const k = months[idx];
-                      return (
-                      <td key={k} className="text-center py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums">
-                        {(item[k] as number).toFixed(2)}
-                      </td>
-                      );
-                    })}
-                    <td className="text-center py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
-                      {item.total.toFixed(2)}
+                {chartTableRows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={2 + visibleMonthIndexes.length + 1}
+                      className="text-center py-6 text-muted-foreground"
+                    >
+                      No data for selected filters/range.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  chartTableRows.map((item) => (
+                    <tr
+                      key={item.name}
+                      className="border-b border-border/50 hover:bg-muted/30"
+                    >
+                      <td className="py-2 px-3 text-primary font-medium sticky left-0 z-20 bg-card min-w-[200px] max-w-[240px] shadow-[4px_0_12px_-4px_hsl(var(--foreground)/0.08)]">
+                        {item.name}
+                      </td>
+                      {visibleMonthIndexes.map((idx) => {
+                        const k = months[idx];
+                        return (
+                          <td
+                            key={k}
+                            className="text-center py-2 px-2 text-xs min-w-[72px] whitespace-nowrap tabular-nums"
+                          >
+                            {(item[k] as number).toFixed(2)}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center py-2 px-3 font-bold text-primary sticky right-0 z-20 bg-card min-w-[112px] shadow-[-4px_0_12px_-4px_hsl(var(--foreground)/0.08)] tabular-nums">
+                        {item.total.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
-            </ReportMatrixScrollTable>
-            <div className="mt-4">
-              <AdvancedPagination
-                page={chartTablePage}
-                totalPages={Math.max(
-                  1,
-                  Math.ceil(filteredMonthlySpend.length / chartTablePerPage),
-                )}
-                totalItems={filteredMonthlySpend.length}
-                perPage={chartTablePerPage}
-                onPageChange={setChartTablePage}
-                onPerPageChange={setChartTablePerPage}
-              />
-            </div>
+          </ReportMatrixScrollTable>
+          <div className="mt-4">
+            <AdvancedPagination
+              page={chartTablePage}
+              totalPages={Math.max(
+                1,
+                Math.ceil(filteredMonthlySpend.length / chartTablePerPage),
+              )}
+              totalItems={filteredMonthlySpend.length}
+              perPage={chartTablePerPage}
+              onPageChange={setChartTablePage}
+              onPerPageChange={setChartTablePerPage}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -889,6 +911,17 @@ const TeamReports = () => {
                   (leaderPage - 1) * leaderPerPage,
                   leaderPage * leaderPerPage,
                 );
+
+                if (paginatedUsers.length === 0) {
+                  return (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-6">
+                        No users for selected filters/range.
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
                 return paginatedUsers.map((u, i) => {
                   const globalIdx = (leaderPage - 1) * leaderPerPage + i;
                   const uData = chartData.userMonthlySpend.find(
@@ -915,7 +948,10 @@ const TeamReports = () => {
                           </div>
                           <button
                             className="font-medium text-primary hover:underline cursor-pointer text-left"
-                            onClick={() => { setProxyView(u); setProxyTab("report"); }}
+                            onClick={() => {
+                              setProxyView(u);
+                              setProxyTab("report");
+                            }}
                           >
                             {u.name}
                           </button>

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   addDays,
   addMonths,
@@ -37,9 +43,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -66,7 +82,12 @@ export type ScopeKey =
   | "reports-project"
   | "project-detail";
 
-export type AdjustGranularity = "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+export type AdjustGranularity =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "yearly";
 
 interface DateRangeValue {
   from: Date;
@@ -168,17 +189,35 @@ export function getAllowedAdjustForPreset(
   switch (preset) {
     case "today":
     case "yesterday":
-      return { daily: false, weekly: false, monthly: false, quarterly: false, yearly: false };
+      return {
+        daily: false,
+        weekly: false,
+        monthly: false,
+        quarterly: false,
+        yearly: false,
+      };
 
     case "thisWeek":
     case "last7":
     case "lastWeek":
-      return { daily: true, weekly: false, monthly: false, quarterly: false, yearly: false };
+      return {
+        daily: true,
+        weekly: false,
+        monthly: false,
+        quarterly: false,
+        yearly: false,
+      };
 
     case "last14":
     case "thisMonth":
     case "last30":
-      return { daily: true, weekly: true, monthly: false, quarterly: false, yearly: false };
+      return {
+        daily: true,
+        weekly: true,
+        monthly: false,
+        quarterly: false,
+        yearly: false,
+      };
 
     case "lastMonth":
     case "allTime":
@@ -201,14 +240,44 @@ export function getAllowedAdjustForDateRange(
 ): Record<AdjustGranularity, boolean> {
   const days = differenceInDays(range.to, range.from) + 1;
   if (days <= 7)
-    return { daily: true, weekly: false, monthly: false, quarterly: false, yearly: false };
+    return {
+      daily: true,
+      weekly: false,
+      monthly: false,
+      quarterly: false,
+      yearly: false,
+    };
   if (days <= 30)
-    return { daily: true, weekly: true, monthly: false, quarterly: false, yearly: false };
+    return {
+      daily: true,
+      weekly: true,
+      monthly: false,
+      quarterly: false,
+      yearly: false,
+    };
   if (days <= 90)
-    return { daily: false, weekly: true, monthly: true, quarterly: false, yearly: false };
+    return {
+      daily: false,
+      weekly: true,
+      monthly: true,
+      quarterly: false,
+      yearly: false,
+    };
   if (days <= 365)
-    return { daily: false, weekly: false, monthly: true, quarterly: true, yearly: false };
-  return { daily: false, weekly: false, monthly: false, quarterly: true, yearly: true };
+    return {
+      daily: false,
+      weekly: false,
+      monthly: true,
+      quarterly: true,
+      yearly: false,
+    };
+  return {
+    daily: false,
+    weekly: false,
+    monthly: false,
+    quarterly: true,
+    yearly: true,
+  };
 }
 
 export function isAdjustAllowed(
@@ -226,7 +295,13 @@ function clampAdjust(
 ): AdjustGranularity {
   const allowed = getAllowedAdjustForPreset(preset, range);
   if (allowed[current]) return current;
-  const order: AdjustGranularity[] = ["daily", "weekly", "monthly", "quarterly", "yearly"];
+  const order: AdjustGranularity[] = [
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "yearly",
+  ];
   return order.find((g) => allowed[g]) ?? "daily";
 }
 
@@ -236,14 +311,20 @@ export function clampAdjustForRange(
 ): AdjustGranularity {
   const allowed = getAllowedAdjustForDateRange(range);
   if (allowed[current]) return current;
-  const order: AdjustGranularity[] = ["daily", "weekly", "monthly", "quarterly", "yearly"];
+  const order: AdjustGranularity[] = [
+    "daily",
+    "weekly",
+    "monthly",
+    "quarterly",
+    "yearly",
+  ];
   return order.find((g) => allowed[g]) ?? "monthly";
 }
 
 const defaultScopeState = (): ScopeState => ({
-  preset: "lastMonth",
-  range: getRangeFromPreset("lastMonth"),
-  adjust: "monthly",
+  preset: "last7",
+  range: getRangeFromPreset("last7"),
+  adjust: "daily",
 });
 
 const INITIAL_SCOPES: ScopeKey[] = [
@@ -257,13 +338,26 @@ const INITIAL_SCOPES: ScopeKey[] = [
 
 export function DateRangeProvider({ children }: { children: React.ReactNode }) {
   const [scoped, setScoped] = useState<Record<string, ScopeState>>(() =>
-    Object.fromEntries(INITIAL_SCOPES.map((k) => [k, defaultScopeState()])),
-  );
+  Object.fromEntries(
+    INITIAL_SCOPES.map((k) => [
+      k,
+      k === "projects"
+        ? {
+            preset: "allTime",
+            range: getRangeFromPreset("allTime"),
+            adjust: "quarterly",
+          }
+        : defaultScopeState(),
+    ])
+  )
+);
 
   const setPreset = (scope: string, preset: DatePreset) => {
     setScoped((prev) => {
       const range =
-        preset === "custom" ? (prev[scope]?.range ?? getTodayRange()) : getRangeFromPreset(preset);
+        preset === "custom"
+          ? (prev[scope]?.range ?? getTodayRange())
+          : getRangeFromPreset(preset);
       const prevAdjust = prev[scope]?.adjust ?? "monthly";
       const adjust = clampAdjust(preset, range, prevAdjust);
       return { ...prev, [scope]: { preset, range, adjust } };
@@ -287,7 +381,9 @@ export function DateRangeProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <DateRangeContext.Provider value={{ scoped, setPreset, setCustomRange, setAdjust }}>
+    <DateRangeContext.Provider
+      value={{ scoped, setPreset, setCustomRange, setAdjust }}
+    >
       {children}
     </DateRangeContext.Provider>
   );
@@ -295,7 +391,8 @@ export function DateRangeProvider({ children }: { children: React.ReactNode }) {
 
 export function useDateRange(scope: ScopeKey = "dashboard") {
   const ctx = useContext(DateRangeContext);
-  if (!ctx) throw new Error("useDateRange must be used inside DateRangeProvider");
+  if (!ctx)
+    throw new Error("useDateRange must be used inside DateRangeProvider");
 
   const state = ctx.scoped[scope] ?? defaultScopeState();
   const from = startOfDay(state.range.from);
@@ -317,7 +414,8 @@ export function useDateRange(scope: ScopeKey = "dashboard") {
   const formatRangeSpan = () =>
     `${format(state.range.from, "dd MMM yyyy")} - ${format(state.range.to, "dd MMM yyyy")}`;
 
-  const adjustLabel = ADJUST_OPTIONS.find((o) => o.id === state.adjust)?.label ?? "Monthly";
+  const adjustLabel =
+    ADJUST_OPTIONS.find((o) => o.id === state.adjust)?.label ?? "Monthly";
   const allowedAdjust = getAllowedAdjustForPreset(state.preset, state.range);
   const allAdjustDisabled = !Object.values(allowedAdjust).some(Boolean);
 
@@ -368,10 +466,12 @@ export function DateRangePicker({
   const previewRange = useMemo(() => {
     if (!hoverDate) return { from: state.range.from, to: state.range.to };
     if (activeInput === "from") {
-      if (isAfter(hoverDate, state.range.to)) return { from: hoverDate, to: hoverDate };
+      if (isAfter(hoverDate, state.range.to))
+        return { from: hoverDate, to: hoverDate };
       return { from: hoverDate, to: state.range.to };
     }
-    if (isBefore(hoverDate, state.range.from)) return { from: hoverDate, to: state.range.from };
+    if (isBefore(hoverDate, state.range.from))
+      return { from: hoverDate, to: state.range.from };
     return { from: state.range.from, to: hoverDate };
   }, [activeInput, hoverDate, state.range.from, state.range.to]);
 
@@ -380,7 +480,8 @@ export function DateRangePicker({
     const now = new Date();
     const maxMonth = selectedYear === now.getFullYear() ? now.getMonth() : 11;
     const items: Date[] = [];
-    for (let m = 0; m <= maxMonth; m += 1) items.push(new Date(selectedYear, m, 1));
+    for (let m = 0; m <= maxMonth; m += 1)
+      items.push(new Date(selectedYear, m, 1));
     return items;
   }, [year]);
 
@@ -444,7 +545,9 @@ export function DateRangePicker({
             <div className="flex flex-col gap-3 w-full">
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground">Start date*</label>
+                  <label className="text-xs text-muted-foreground">
+                    Start date*
+                  </label>
                   <Input
                     value={parsedFrom}
                     onFocus={() => setActiveInput("from")}
@@ -452,7 +555,9 @@ export function DateRangePicker({
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-muted-foreground">End date*</label>
+                  <label className="text-xs text-muted-foreground">
+                    End date*
+                  </label>
                   <Input
                     value={parsedTo}
                     onFocus={() => setActiveInput("to")}
@@ -463,7 +568,9 @@ export function DateRangePicker({
 
               <div className="border rounded-md p-2">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-muted-foreground">Date range</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Date range
+                  </p>
                   <Select value={year} onValueChange={setYear}>
                     <SelectTrigger className="h-8 w-[110px]">
                       <SelectValue />
@@ -480,7 +587,10 @@ export function DateRangePicker({
                 <ScrollArea className="h-[420px] pr-2">
                   <div className="space-y-3">
                     {monthStarts.map((monthStart) => (
-                      <div key={monthStart.toISOString()} className="border rounded-md">
+                      <div
+                        key={monthStart.toISOString()}
+                        className="border rounded-md"
+                      >
                         <Calendar
                           mode="range"
                           numberOfMonths={1}
@@ -511,7 +621,8 @@ export function AdjustGranularityDropdown({
   scope?: ScopeKey;
   className?: string;
 }) {
-  const { state, setAdjust, allowedAdjust, allAdjustDisabled } = useDateRange(scope);
+  const { state, setAdjust, allowedAdjust, allAdjustDisabled } =
+    useDateRange(scope);
 
   return (
     <DropdownMenu>
@@ -521,7 +632,8 @@ export function AdjustGranularityDropdown({
           className={cn("gap-1", className)}
           disabled={allAdjustDisabled}
         >
-          Adjust: {ADJUST_OPTIONS.find((o) => o.id === state.adjust)?.label ?? "—"}
+          Adjust:{" "}
+          {ADJUST_OPTIONS.find((o) => o.id === state.adjust)?.label ?? "—"}
           <ChevronDown className="h-4 w-4 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
@@ -594,7 +706,10 @@ export function buildDashboardPerformanceSeries(
   entries.forEach((entry) => {
     const parsed = parsePerformanceEntryDate(entry.date);
     if (!parsed) return;
-    if (isBefore(parsed, startOfDay(range.from)) || isAfter(parsed, endOfDay(range.to))) {
+    if (
+      isBefore(parsed, startOfDay(range.from)) ||
+      isAfter(parsed, endOfDay(range.to))
+    ) {
       return;
     }
 
@@ -626,7 +741,10 @@ export function buildDashboardPerformanceSeries(
 
   const fallback = trend.filter((item) => {
     const parsed = parse(item.month, "MMM yyyy", new Date());
-    return !isBefore(parsed, startOfDay(range.from)) && !isAfter(parsed, endOfDay(range.to));
+    return (
+      !isBefore(parsed, startOfDay(range.from)) &&
+      !isAfter(parsed, endOfDay(range.to))
+    );
   });
 
   return {
@@ -655,7 +773,10 @@ export const parsePerformanceEntryDate = (dateValue: string): Date | null => {
   }
 };
 
-export const getBucketKey = (date: Date, granularity: DateSeriesGranularity): string => {
+export const getBucketKey = (
+  date: Date,
+  granularity: DateSeriesGranularity,
+): string => {
   if (granularity === "daily") return format(date, "yyyy-MM-dd");
   if (granularity === "weekly") {
     const ws = startOfISOWeek(date);
@@ -743,7 +864,9 @@ export const createTimeBuckets = (
   return buckets;
 };
 
-export const getGranularityFromPreset = (preset: DatePreset): AdjustGranularity => {
+export const getGranularityFromPreset = (
+  preset: DatePreset,
+): AdjustGranularity => {
   if (preset === "today" || preset === "yesterday") return "daily";
   if (
     preset === "thisWeek" ||
